@@ -6,7 +6,15 @@
 
 void setup()
 {
-
+  Serial.begin(9600);
+  //get wake up reasons
+  //initialize GPIOs
+  //power up peripherals
+  //set TOD on interval
+  //read sensors
+  //send LoRa data structure
+  //power off peripherals
+  //sleep
 }
 
 //===================================================
