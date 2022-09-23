@@ -1,6 +1,8 @@
 //LoRa baseed weather station
-//Hardware design by Debasish Dutta
-//Software design by James Hughes
+//Hardware design by Debasish Dutta - opengreenenergy@gmail.com
+//Software design by James Hughes - jhughes1010@gmail.com
+
+//Hardware build target: ESP32
 
 void setup()
 {
