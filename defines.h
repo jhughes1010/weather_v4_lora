@@ -11,10 +11,14 @@
 #define SEC 1E6          //Multiplier for uS based math
 #define WDT_TIMEOUT 60   //watchdog timer
 
+#define BAND 915E6
+
+#define SerialMonitor
+
 //===========================================
 //Set how often to wake and read sensors
 //===========================================
-//const int UpdateIntervalSeconds = 30 * 60;  //Sleep timer (900s) for my normal operation
+//const int UpdateIntervalSeconds = 15 * 60;  //Sleep timer (900s) for my normal operation
 const int UpdateIntervalSeconds = 1 * 60;  //Sleep timer (300s) testing
 
 

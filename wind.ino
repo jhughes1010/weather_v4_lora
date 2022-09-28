@@ -80,7 +80,7 @@ void readWindDirection(struct sensorData *environment)
   MonPrintf("Analog value: %i Wind direction: %s  \n", vin, windDirection);
   windDirection.toCharArray(buffer, 5);
   environment->windDirection = atof(buffer);
-  strcpy(environment->windCardinalDirection, windCardinalDirection.c_str());
+  //strcpy(environment->windCardinalDirection, windCardinalDirection.c_str());
 }
 
 //=======================================================

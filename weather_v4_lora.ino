@@ -5,6 +5,8 @@
 //Hardware build target: ESP32
 #define VERSION "1.0.0"
 
+#include "heltec.h"
+
 #include "defines.h"
 #include <soc/soc.h>
 #include <soc/rtc_cntl_reg.h>
@@ -19,16 +21,16 @@
 #include <BH1750.h>
 #include <BME280I2C.h>
 #include <Adafruit_SI1145.h>
-#include <stdarg.h>
-#include <PubSubClient.h>
+//#include <stdarg.h>
+//#include <PubSubClient.h>
 #include <soc/soc.h>
 #include <soc/rtc_cntl_reg.h>
 #include <esp_task_wdt.h>
 #include <esp_system.h>
 #include <driver/rtc_io.h>
 //OLED diagnostics board
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+//#include <Adafruit_GFX.h>
+//#include <Adafruit_SSD1306.h>
 
 #define OLED_RESET 4
 
@@ -48,19 +50,32 @@ RTC_DATA_ATTR int bootCount = 0;
 struct sensorData
 {
   float temperatureC;
-  float temperatureF;
   float windSpeed;
   float windDirection;
-  char windCardinalDirection[5];
+  //char windCardinalDirection[5];
   float barometricPressure;
-  float BMEtemperature;
+  //float BMEtemperature;
   float humidity;
   float UVIndex;
   float lux;
-  int photoresistor;
+};
+
+struct diagnostics
+{
+  //float temperatureC;
+  //float temperatureF;
+  //float windSpeed;
+  float windDirection;
+  //char windCardinalDirection[5];
+  //float barometricPressure;
+  float BMEtemperature;
+  //float humidity;
+  //float UVIndex;
+  //float lux;
+  //int photoresistor;
   float batteryVoltage;
   int batteryADC;
-  unsigned int coreF;
+  //unsigned int coreF;
   unsigned int coreC;
 };
 
@@ -92,10 +107,13 @@ void setup()
 {
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment;
-
+  struct diagnostics hardware;
   Serial.begin(115200);
-  printTitle();
+  Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
 
+  printTitle();
+  Serial.printf("Environment size: %i\n", sizeof(sensorData));
+  Serial.printf("Hardware size: %i\n", sizeof(diagnostics));
   //get wake up reason
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
@@ -112,6 +130,7 @@ void setup()
     //Timer
     case ESP_SLEEP_WAKEUP_TIMER :
       MonPrintf("Wakeup caused by timer\n");
+      bootCount++;
       //WiFiEnable = true;
       //Rainfall interrupt pin set up
       delay(100); //possible settling time on pin to charge
@@ -126,6 +145,8 @@ void setup()
       sensorStatusToConsole();
       readSensors(&environment);
       //send LoRa data structure
+      loraSend(&environment);
+      HexDump(&environment);
       //power off peripherals
       break;
   }
@@ -147,8 +168,20 @@ void loop()
 //===================================================
 void printTitle(void)
 {
+  char buffer[32];
   Serial.printf("Weather station v4\n");
   Serial.printf("Version %s\n\n", VERSION);
+
+  Heltec.display->init();
+  Heltec.display->flipScreenVertically();
+  Heltec.display->setFont(ArialMT_Plain_10);
+  Heltec.display->clear();
+  sprintf(buffer, "Weather v4 LoRa: %s", VERSION);
+  Heltec.display->drawString(0, 0, buffer);
+  sprintf(buffer, "Boot: %i", bootCount);
+  Heltec.display->drawString(0, 16, buffer);
+  Heltec.display->display();
+  delay(3000);
 }
 
 //===========================================
@@ -163,7 +196,7 @@ void sleepyTime(long UpdateInterval)
 
   rtc_gpio_set_level(GPIO_NUM_12, 0);
   esp_sleep_enable_timer_wakeup(UpdateInterval * SEC);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
+  // rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   //elapsedTime = (int)millis() / 1000;
   esp_deep_sleep_start();
 }
@@ -201,5 +234,19 @@ void BlinkLED(int count)
     //LED OFF
     digitalWrite(LED_BUILTIN, LOW);
     delay(350);
+  }
+}
+
+void HexDump(struct sensorData *environment)
+{
+  int size = 28;
+  int x;
+  char ch;
+  char *p = (char* ) &environment;
+
+  for (x = 0; x < size; x++)
+  {
+    //ch = *(p+x);
+    Serial.printf("%02X ", p[x]);
   }
 }
