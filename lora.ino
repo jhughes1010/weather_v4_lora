@@ -1,5 +1,6 @@
-void loraSend(struct sensorData *environment)
+void loraSend(struct sensorData environment)
 {
+  struct sensorData env = {};
   LoRa.beginPacket();
 
   /*
@@ -12,7 +13,7 @@ void loraSend(struct sensorData *environment)
   LoRa.setTxPower(14, RF_PACONFIG_PASELECT_PABOOST);
   //LoRa.print("weather v4 ");
   MonPrintf("Packet size: %i\n", sizeof(sensorData));
-  LoRa.write((uint8_t*) &environment, sizeof(sensorData));
+  LoRa.write((byte *)&environment, sizeof(sensorData));
   //LoRa.print(bootCount);
   LoRa.endPacket();
 }

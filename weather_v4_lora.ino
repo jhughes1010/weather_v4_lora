@@ -62,17 +62,7 @@ struct sensorData
 
 struct diagnostics
 {
-  //float temperatureC;
-  //float temperatureF;
-  //float windSpeed;
-  float windDirection;
-  //char windCardinalDirection[5];
-  //float barometricPressure;
   float BMEtemperature;
-  //float humidity;
-  //float UVIndex;
-  //float lux;
-  //int photoresistor;
   float batteryVoltage;
   int batteryADC;
   //unsigned int coreF;
@@ -106,7 +96,7 @@ struct sensorStatus status;
 void setup()
 {
   esp_sleep_wakeup_cause_t wakeup_reason;
-  struct sensorData environment;
+  struct sensorData environment = {};
   struct diagnostics hardware;
   Serial.begin(115200);
   Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
@@ -143,10 +133,15 @@ void setup()
       //read sensors
       sensorEnable();
       sensorStatusToConsole();
-      readSensors(&environment);
+      //readSensors(&environment);
       //send LoRa data structure
-      loraSend(&environment);
-      HexDump(&environment);
+      //force load of sample data
+      FillEnvironment(&environment);
+      //memset(&environment,0,28);
+      HexDump(environment);
+      PrintEnvironment(&environment);
+      loraSend(environment);
+      HexDump(environment);
       //power off peripherals
       break;
   }
@@ -194,7 +189,7 @@ void sleepyTime(long UpdateInterval)
   Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
   Serial.flush();
 
-  rtc_gpio_set_level(GPIO_NUM_12, 0);
+  //jh rtc_gpio_set_level(GPIO_NUM_12, 0);
   esp_sleep_enable_timer_wakeup(UpdateInterval * SEC);
   // rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   //elapsedTime = (int)millis() / 1000;
@@ -237,16 +232,53 @@ void BlinkLED(int count)
   }
 }
 
-void HexDump(struct sensorData *environment)
+//===========================================
+// HexDump: display environment structure bytes
+//===========================================
+void HexDump(struct sensorData environment)
 {
   int size = 28;
   int x;
   char ch;
   char *p = (char* ) &environment;
+  //memset(&environment,0,28);
 
   for (x = 0; x < size; x++)
   {
     //ch = *(p+x);
     Serial.printf("%02X ", p[x]);
+    if (x % 8 == 7)
+    {
+      Serial.println("");
+    }
   }
+  Serial.println("");
+}
+
+//===========================================
+// FillEnvironment: Fill environment struct with test data (no sensors)
+//===========================================
+void FillEnvironment(struct sensorData *environment)
+{
+  environment->temperatureC = 20;
+  environment->windSpeed = 05;
+  environment->windDirection = 90;
+  environment->barometricPressure = 30;
+  environment->humidity = 15.0;
+  environment->UVIndex = 3.0;
+  environment->lux = 58;
+}
+
+//===========================================
+// PrintEnvironment: 
+//===========================================
+void PrintEnvironment(struct sensorData *environment)
+{
+  Serial.printf("Temperature: %f\n", environment->temperatureC);
+  Serial.printf("Wind speed: %f\n", environment->windSpeed);
+  Serial.printf("Wind direction: %f\n", environment->windDirection);
+  Serial.printf("barometer: %f\n", environment->barometricPressure);
+  Serial.printf("Humidity: %f\n", environment->humidity);
+  Serial.printf("UV Index: %f\n", environment->UVIndex);
+  Serial.printf("Lux: %f\n", environment->lux);
 }

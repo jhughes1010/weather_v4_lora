@@ -9,7 +9,7 @@
 #define TEMP_PIN      4  // DS18B20 hooked up to GPIO pin 4
 #define LED_BUILTIN   2  //Diagnostics using built-in LED, may be set to 12 for newer boards that do not use devkit sockets
 #define SEC 1E6          //Multiplier for uS based math
-#define WDT_TIMEOUT 60   //watchdog timer
+#define WDT_TIMEOUT 120   //watchdog timer
 
 #define BAND 915E6
 
@@ -18,8 +18,8 @@
 //===========================================
 //Set how often to wake and read sensors
 //===========================================
-//const int UpdateIntervalSeconds = 15 * 60;  //Sleep timer (900s) for my normal operation
-const int UpdateIntervalSeconds = 1 * 60;  //Sleep timer (300s) testing
+const int UpdateIntervalSeconds = 15 * 60;  //Sleep timer (900s) for my normal operation
+//const int UpdateIntervalSeconds = 1 * 15;  //Sleep timer (300s) testing
 
 
 //===========================================
