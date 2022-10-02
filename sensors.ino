@@ -9,7 +9,6 @@ extern "C"
 //=======================================================
 //  readSensors: Read all sensors and battery voltage
 //=======================================================
-//Entry point for all sensor data reading
 void readSensors(struct sensorData *environment)
 {
   readWindSpeed(environment);
@@ -17,12 +16,22 @@ void readSensors(struct sensorData *environment)
   readTemperature(environment);
   readLux(environment);
   //readPR(environment);
-  readBME(environment);
+  // need overload readBME(environment);
   readUV(environment);
   //readBattery(hardware);
   //readESPCoreTemp(hardware);
+  readBME(environment);
 }
 
+//=======================================================
+//  readSystemSensors: Hardware health and diagnostics
+//=======================================================
+void readSystemSensors(struct diagnostics *hardware)
+{
+  readBME(hardware);
+  readBattery(hardware);
+  readESPCoreTemp(hardware);
+}
 //=======================================================
 //  readTemperature: Read 1W DS1820B
 //=======================================================
@@ -116,6 +125,28 @@ void readPR(struct sensorData *environment)
   MonPrintf("photoresistor value: %i photoresistor\n", vin);
   //environment->photoresistor = vin;
 }
+
+//=======================================================
+//  readBME: BME sensor read
+//=======================================================
+void readBME(struct diagnostics *hardware)
+{
+  float relHum, pressure;
+  if (status.bme)
+  {
+    bme.read(pressure, hardware->BMEtemperature, relHum, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
+  }
+  else
+  {
+    //set to insane values
+   //environment->barometricPressure = -100;
+    hardware->BMEtemperature = -100;
+    //environment->humidity = -100;
+  }
+  MonPrintf("BME case temperature: %6.2f\n", hardware->BMEtemperature);
+
+}
+
 //=======================================================
 //  readBME: BME sensor read
 //=======================================================
@@ -124,14 +155,9 @@ void readBME(struct sensorData *environment)
   float case_temperature;
   if (status.bme)
   {
-    //#ifndef METRIC
-    //    bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Fahrenheit, BME280::PresUnit_inHg);
-    //   environment->barometricPressure += ALTITUDE_OFFSET_IMPERIAL;
-    //#else
+
     bme.read(environment->barometricPressure, case_temperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
     environment->barometricPressure += ALTITUDE_OFFSET_METRIC;
-    //#endif
-
   }
   else
   {
@@ -167,8 +193,6 @@ void readESPCoreTemp(struct diagnostics *hardware)
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
   coreC = (coreF - 32) * 5 / 9;
-
-  //environment->coreF = coreF;
   hardware->coreC = coreC;
 }
 
@@ -185,7 +209,8 @@ void readESPCoreTemp(struct diagnostics *hardware)
 //===========================================
 void sensorEnable(void)
 {
-  status.temperature = Wire.begin();
+  status.temperature = 1;
+  //Wire.setClock(100000);
   status.bme = bme.begin();
   status.uv = uv.begin();
   status.lightMeter = lightMeter.begin();

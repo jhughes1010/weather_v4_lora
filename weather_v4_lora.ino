@@ -65,8 +65,8 @@ struct diagnostics
   float BMEtemperature;
   float batteryVoltage;
   int batteryADC;
-  //unsigned int coreF;
-  unsigned int coreC;
+  int coreC;
+  int bootCount;
 };
 
 struct sensorStatus
@@ -75,6 +75,7 @@ struct sensorStatus
   int bme;
   int lightMeter;
   int temperature;
+
 };
 
 //===========================================
@@ -95,15 +96,18 @@ struct sensorStatus status;
 
 void setup()
 {
+  int status;
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment = {};
-  struct diagnostics hardware;
+  struct diagnostics hardware = {};
+
   Serial.begin(115200);
+  Wire.begin(4, 15);
   Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
 
   printTitle();
-  Serial.printf("Environment size: %i\n", sizeof(sensorData));
-  Serial.printf("Hardware size: %i\n", sizeof(diagnostics));
+  Serial.printf("Status: %i\n\n", status);
+
   //get wake up reason
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
@@ -112,10 +116,8 @@ void setup()
     //Rain Tip Gauge
     case ESP_SLEEP_WAKEUP_EXT0 :
       MonPrintf("Wakeup caused by external signal using RTC_IO\n");
-      //WiFiEnable = false;
       rainTicks++;
       break;
-
 
     //Timer
     case ESP_SLEEP_WAKEUP_TIMER :
@@ -124,24 +126,33 @@ void setup()
       //WiFiEnable = true;
       //Rainfall interrupt pin set up
       delay(100); //possible settling time on pin to charge
-      attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
-      attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
+      //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
+      //attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
 
       //initialize GPIOs
+
       //power up peripherals
       //set TOD on interval
       //read sensors
       sensorEnable();
       sensorStatusToConsole();
-      //readSensors(&environment);
-      //send LoRa data structure
-      //force load of sample data
-      FillEnvironment(&environment);
-      //memset(&environment,0,28);
-      HexDump(environment);
-      PrintEnvironment(&environment);
-      loraSend(environment);
-      HexDump(environment);
+      if (bootCount % 2 == 1)
+      {
+        MonPrintf("Sending sensor data\n");
+        //environmental sensor data send
+        readSensors(&environment);
+        //send LoRa data structure
+        loraSend(environment);
+      }
+      else
+      {
+        MonPrintf("Sending hardware data\n");
+        //system (battery levels, ESP32 core temp, case temp, etc) send
+        readSystemSensors(&hardware);
+        hardware.bootCount = bootCount;
+        loraSystemHardwareSend(hardware);
+      }
+
       //power off peripherals
       break;
   }
@@ -189,7 +200,7 @@ void sleepyTime(long UpdateInterval)
   Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
   Serial.flush();
 
-  //jh rtc_gpio_set_level(GPIO_NUM_12, 0);
+  rtc_gpio_set_level(GPIO_NUM_12, 0);
   esp_sleep_enable_timer_wakeup(UpdateInterval * SEC);
   // rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   //elapsedTime = (int)millis() / 1000;
@@ -270,7 +281,7 @@ void FillEnvironment(struct sensorData *environment)
 }
 
 //===========================================
-// PrintEnvironment: 
+// PrintEnvironment:
 //===========================================
 void PrintEnvironment(struct sensorData *environment)
 {
