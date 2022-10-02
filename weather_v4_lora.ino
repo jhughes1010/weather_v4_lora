@@ -2,8 +2,12 @@
 //Hardware design by Debasish Dutta - opengreenenergy@gmail.com
 //Software design by James Hughes - jhughes1010@gmail.com
 
+/* History
+   0.9.0 10-2-22 Initial development for Heltec ESP32 LoRa v2 devkit
+*/
+
 //Hardware build target: ESP32
-#define VERSION "1.0.0"
+#define VERSION "0.9.0"
 
 #include "heltec.h"
 
@@ -60,6 +64,9 @@ struct sensorData
   float lux;
 };
 
+//===========================================
+// Station hardware structure
+//===========================================
 struct diagnostics
 {
   float BMEtemperature;
@@ -69,6 +76,9 @@ struct diagnostics
   int bootCount;
 };
 
+//===========================================
+// Sensor initilization structure
+//===========================================
 struct sensorStatus
 {
   int uv;
@@ -94,6 +104,9 @@ bool lowBattery = false;
 struct sensorStatus status;
 //long rssi = 0;
 
+//===========================================
+// Setup
+//===========================================
 void setup()
 {
   int status;
@@ -196,14 +209,17 @@ void printTitle(void)
 //===========================================
 void sleepyTime(long UpdateInterval)
 {
+  int elapsedTime;
   Serial.println("\n\n\nGoing to sleep now...");
   Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
   Serial.flush();
 
   rtc_gpio_set_level(GPIO_NUM_12, 0);
-  esp_sleep_enable_timer_wakeup(UpdateInterval * SEC);
-  // rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
-  //elapsedTime = (int)millis() / 1000;
+
+  // jh rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
+  elapsedTime = (int)millis() / 1000;
+  //subtract elapsed time to try to maintain interval
+  esp_sleep_enable_timer_wakeup((UpdateInterval - elapsedTime) * SEC);
   esp_deep_sleep_start();
 }
 
@@ -256,14 +272,13 @@ void HexDump(struct sensorData environment)
 
   for (x = 0; x < size; x++)
   {
-    //ch = *(p+x);
-    Serial.printf("%02X ", p[x]);
+    MonPrintf("%02X ", p[x]);
     if (x % 8 == 7)
     {
-      Serial.println("");
+      MonPrintf("\n");
     }
   }
-  Serial.println("");
+  MonPrintf("\n");
 }
 
 //===========================================

@@ -11,15 +11,11 @@ extern "C"
 //=======================================================
 void readSensors(struct sensorData *environment)
 {
-  readWindSpeed(environment);
-  readWindDirection(environment);
-  readTemperature(environment);
-  readLux(environment);
-  //readPR(environment);
-  // need overload readBME(environment);
-  readUV(environment);
-  //readBattery(hardware);
-  //readESPCoreTemp(hardware);
+  //TODO:readWindSpeed(environment);
+  //TODO:readWindDirection(environment);
+  //TODO:readTemperature(environment);
+  //TODO:readLux(environment);
+  //TODO:readUV(environment);
   readBME(environment);
 }
 
@@ -29,7 +25,7 @@ void readSensors(struct sensorData *environment)
 void readSystemSensors(struct diagnostics *hardware)
 {
   readBME(hardware);
-  readBattery(hardware);
+  //TODO:readBattery(hardware);
   readESPCoreTemp(hardware);
 }
 //=======================================================
@@ -44,13 +40,11 @@ void readTemperature (struct sensorData *environment)
   // Check if reading was successful
   if (environment->temperatureC != DEVICE_DISCONNECTED_C)
   {
-    //environment->temperatureF = environment->temperatureC * 9 / 5 + 32;
     MonPrintf("Temperature for the device 1 (index 0) is: %5.1f C\n", environment->temperatureC);
   }
   else
   {
     MonPrintf("Error: Could not read temperature data\n");
-    //environment->temperatureF = -40;
     environment->temperatureC = -40;
   }
 }
@@ -114,19 +108,6 @@ void readLux(struct sensorData *environment)
 }
 
 //=======================================================
-//  readPR: photoresistor ADC read
-//=======================================================
-void readPR(struct sensorData *environment)
-{
-  int vin;
-
-  vin = analogRead(PR_PIN);
-
-  MonPrintf("photoresistor value: %i photoresistor\n", vin);
-  //environment->photoresistor = vin;
-}
-
-//=======================================================
 //  readBME: BME sensor read
 //=======================================================
 void readBME(struct diagnostics *hardware)
@@ -138,10 +119,7 @@ void readBME(struct diagnostics *hardware)
   }
   else
   {
-    //set to insane values
-   //environment->barometricPressure = -100;
     hardware->BMEtemperature = -100;
-    //environment->humidity = -100;
   }
   MonPrintf("BME case temperature: %6.2f\n", hardware->BMEtemperature);
 
@@ -155,7 +133,6 @@ void readBME(struct sensorData *environment)
   float case_temperature;
   if (status.bme)
   {
-
     bme.read(environment->barometricPressure, case_temperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
     environment->barometricPressure += ALTITUDE_OFFSET_METRIC;
   }
@@ -163,11 +140,9 @@ void readBME(struct sensorData *environment)
   {
     //set to insane values
     environment->barometricPressure = -100;
-    //environment->BMEtemperature = -100;
     environment->humidity = -100;
   }
   MonPrintf("BME barometric pressure: %6.2f  BME humidity: %6.2f\n", environment->barometricPressure, environment->humidity);
-
 }
 
 //=======================================================
@@ -195,14 +170,6 @@ void readESPCoreTemp(struct diagnostics *hardware)
   coreC = (coreF - 32) * 5 / 9;
   hardware->coreC = coreC;
 }
-
-/*
-  void printADCLCD( void)
-  {
-  int adc;
-  adc = analogRead(VOLT_PIN);
-  display.printf("ADC: %i\n", adc);
-  }*/
 
 //===========================================
 // sensorEnable: Initialize i2c and 1w sensors
