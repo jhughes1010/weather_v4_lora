@@ -18,8 +18,8 @@
 //===========================================
 //Set how often to wake and read sensors
 //===========================================
-const int UpdateIntervalSeconds = 15 * 60;  //Sleep timer (900s) for my normal operation
-//const int UpdateIntervalSeconds = .25 * 60;  //Sleep timer (300s) testing
+const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (900s) for my normal operation
+//const int UpdateIntervalSeconds = 1 * 60; //Sleep timer (300s) testing
 
 
 //===========================================

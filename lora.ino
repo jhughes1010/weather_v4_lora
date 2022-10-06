@@ -12,7 +12,7 @@ void loraSystemHardwareSend(struct diagnostics hardware)
        - RF_PACONFIG_PASELECT_PABOOST -- LoRa single output via PABOOST, maximum output 20dBm
        - RF_PACONFIG_PASELECT_RFO     -- LoRa single output via RFO_HF / RFO_LF, maximum output 14dBm
   */
-  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_RFO);
+  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_PABOOST);
   MonPrintf("Packet size: %i\n", sizeof(diagnostics));
   LoRa.write((byte *)&hardware, sizeof(diagnostics));
   LoRa.endPacket();
