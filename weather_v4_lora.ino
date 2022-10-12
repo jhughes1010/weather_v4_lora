@@ -53,12 +53,10 @@ RTC_DATA_ATTR int bootCount = 0;
 //===========================================
 struct sensorData
 {
+  int windDirectionADC;
   float temperatureC;
   float windSpeed;
-  float windDirection;
-  //char windCardinalDirection[5];
   float barometricPressure;
-  //float BMEtemperature;
   float humidity;
   float UVIndex;
   float lux;
@@ -72,6 +70,7 @@ struct diagnostics
   float BMEtemperature;
   float batteryVoltage;
   int batteryADC;
+  int solarADC;
   int coreC;
   int bootCount;
 };
@@ -85,7 +84,6 @@ struct sensorStatus
   int bme;
   int lightMeter;
   int temperature;
-
 };
 
 //===========================================
@@ -146,6 +144,7 @@ void setup()
 
       //power up peripherals
       //set TOD on interval
+
       //read sensors
       sensorEnable();
       sensorStatusToConsole();
@@ -166,7 +165,7 @@ void setup()
         loraSystemHardwareSend(hardware);
       }
 
-      //power off peripherals
+      //TODO: power off peripherals
       break;
   }
 
