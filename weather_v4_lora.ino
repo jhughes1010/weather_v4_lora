@@ -287,7 +287,7 @@ void FillEnvironment(struct sensorData *environment)
 {
   environment->temperatureC = 20;
   environment->windSpeed = 05;
-  environment->windDirection = 90;
+ //TODO environment->windDirection = 90;
   environment->barometricPressure = 30;
   environment->humidity = 15.0;
   environment->UVIndex = 3.0;
@@ -301,7 +301,7 @@ void PrintEnvironment(struct sensorData *environment)
 {
   Serial.printf("Temperature: %f\n", environment->temperatureC);
   Serial.printf("Wind speed: %f\n", environment->windSpeed);
-  Serial.printf("Wind direction: %f\n", environment->windDirection);
+//TODO:  Serial.printf("Wind direction: %f\n", environment->windDirection);
   Serial.printf("barometer: %f\n", environment->barometricPressure);
   Serial.printf("Humidity: %f\n", environment->humidity);
   Serial.printf("UV Index: %f\n", environment->UVIndex);

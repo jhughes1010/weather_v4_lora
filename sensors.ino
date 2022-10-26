@@ -25,7 +25,8 @@ void readSensors(struct sensorData *environment)
 void readSystemSensors(struct diagnostics *hardware)
 {
   readBME(hardware);
-  //TODO:readBattery(hardware);
+  //TODO:readBatteryADC(hardware);
+  //TODO:readSolarADC(hardware);
   readESPCoreTemp(hardware);
 }
 //=======================================================
@@ -53,6 +54,7 @@ void readTemperature (struct sensorData *environment)
 //  readBattery: read analog volatage divider value
 //=======================================================
 void readBattery (struct diagnostics *hardware)
+//TODO: Rethink the low voltage warning indicator as the calibration is being moved to the LoRa receiver
 {
   hardware->batteryADC = analogRead(VOLT_PIN);
   hardware->batteryVoltage = hardware->batteryADC * batteryCalFactor;
