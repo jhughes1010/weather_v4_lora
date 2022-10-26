@@ -9,7 +9,11 @@
 //Hardware build target: ESP32
 #define VERSION "0.9.0"
 
+#ifdef heltec
 #include "heltec.h"
+#else
+#include <LoRa.h>
+#endif
 
 #include "defines.h"
 #include <soc/soc.h>
@@ -51,8 +55,7 @@ RTC_DATA_ATTR int bootCount = 0;
 //===========================================
 // Weather-environment structure
 //===========================================
-struct sensorData
-{
+struct sensorData {
   int windDirectionADC;
   float temperatureC;
   float windSpeed;
@@ -65,8 +68,7 @@ struct sensorData
 //===========================================
 // Station hardware structure
 //===========================================
-struct diagnostics
-{
+struct diagnostics {
   float BMEtemperature;
   float batteryVoltage;
   int batteryADC;
@@ -78,8 +80,7 @@ struct diagnostics
 //===========================================
 // Sensor initilization structure
 //===========================================
-struct sensorStatus
-{
+struct sensorStatus {
   int uv;
   int bme;
   int lightMeter;
@@ -105,8 +106,7 @@ struct sensorStatus status;
 //===========================================
 // Setup
 //===========================================
-void setup()
-{
+void setup() {
   int status;
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment = {};
@@ -114,7 +114,16 @@ void setup()
 
   Serial.begin(115200);
   Wire.begin(4, 15);
+
+#ifdef heltec
   Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
+#else
+  if (!LoRa.begin(915E6)) {
+    Serial.println("Starting LoRa failed!");
+    while (1)
+      ;
+  }
+#endif
 
   printTitle();
   Serial.printf("Status: %i\n\n", status);
@@ -122,21 +131,20 @@ void setup()
   //get wake up reason
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
-  switch (wakeup_reason)
-  {
+  switch (wakeup_reason) {
     //Rain Tip Gauge
-    case ESP_SLEEP_WAKEUP_EXT0 :
+    case ESP_SLEEP_WAKEUP_EXT0:
       MonPrintf("Wakeup caused by external signal using RTC_IO\n");
       rainTicks++;
       break;
 
     //Timer
-    case ESP_SLEEP_WAKEUP_TIMER :
+    case ESP_SLEEP_WAKEUP_TIMER:
       MonPrintf("Wakeup caused by timer\n");
       bootCount++;
       //WiFiEnable = true;
       //Rainfall interrupt pin set up
-      delay(100); //possible settling time on pin to charge
+      delay(100);  //possible settling time on pin to charge
       //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
       //attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
 
@@ -148,16 +156,13 @@ void setup()
       //read sensors
       sensorEnable();
       sensorStatusToConsole();
-      if (bootCount % 2 == 1)
-      {
+      if (bootCount % 2 == 1) {
         MonPrintf("Sending sensor data\n");
         //environmental sensor data send
         readSensors(&environment);
         //send LoRa data structure
         loraSend(environment);
-      }
-      else
-      {
+      } else {
         MonPrintf("Sending hardware data\n");
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
@@ -176,20 +181,19 @@ void setup()
 //===================================================
 // loop: these are not the droids you are looking for
 //===================================================
-void loop()
-{
+void loop() {
   //no loop code
 }
 
 //===================================================
 // printTitle
 //===================================================
-void printTitle(void)
-{
+void printTitle(void) {
   char buffer[32];
   Serial.printf("Weather station v4\n");
   Serial.printf("Version %s\n\n", VERSION);
 
+#ifdef heltec
   Heltec.display->init();
   Heltec.display->flipScreenVertically();
   Heltec.display->setFont(ArialMT_Plain_10);
@@ -200,14 +204,14 @@ void printTitle(void)
   Heltec.display->drawString(0, 16, buffer);
   Heltec.display->display();
   delay(3000);
+#endif
 }
 
 //===========================================
 // sleepyTime: prepare for sleep and set
 // timer and EXT0 WAKE events
 //===========================================
-void sleepyTime(long UpdateInterval)
-{
+void sleepyTime(long UpdateInterval) {
   int elapsedTime;
   Serial.println("\n\n\nGoing to sleep now...");
   Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
@@ -225,12 +229,12 @@ void sleepyTime(long UpdateInterval)
 //===========================================
 // MonPrintf: diagnostic printf to terminal
 //===========================================
-void MonPrintf( const char* format, ... ) {
+void MonPrintf(const char *format, ...) {
   char buffer[200];
   va_list args;
   va_start(args, format);
   vsprintf(buffer, format, args);
-  va_end( args );
+  va_end(args);
 #ifdef SerialMonitor
   Serial.printf("%s", buffer);
 #endif
@@ -239,16 +243,13 @@ void MonPrintf( const char* format, ... ) {
 //===========================================
 // BlinkLED: Blink BUILTIN x times
 //===========================================
-void BlinkLED(int count)
-{
+void BlinkLED(int count) {
   int x;
   //if reason code =0, then set count =1 (just so I can see something)
-  if (!count)
-  {
+  if (!count) {
     count = 1;
   }
-  for (x = 0; x < count; x++)
-  {
+  for (x = 0; x < count; x++) {
     //LED ON
     digitalWrite(LED_BUILTIN, HIGH);
     delay(150);
@@ -261,19 +262,16 @@ void BlinkLED(int count)
 //===========================================
 // HexDump: display environment structure bytes
 //===========================================
-void HexDump(struct sensorData environment)
-{
+void HexDump(struct sensorData environment) {
   int size = 28;
   int x;
   char ch;
-  char *p = (char* ) &environment;
+  char *p = (char *)&environment;
   //memset(&environment,0,28);
 
-  for (x = 0; x < size; x++)
-  {
+  for (x = 0; x < size; x++) {
     MonPrintf("%02X ", p[x]);
-    if (x % 8 == 7)
-    {
+    if (x % 8 == 7) {
       MonPrintf("\n");
     }
   }
@@ -283,11 +281,10 @@ void HexDump(struct sensorData environment)
 //===========================================
 // FillEnvironment: Fill environment struct with test data (no sensors)
 //===========================================
-void FillEnvironment(struct sensorData *environment)
-{
+void FillEnvironment(struct sensorData *environment) {
   environment->temperatureC = 20;
   environment->windSpeed = 05;
- //TODO environment->windDirection = 90;
+  //TODO environment->windDirection = 90;
   environment->barometricPressure = 30;
   environment->humidity = 15.0;
   environment->UVIndex = 3.0;
@@ -297,11 +294,10 @@ void FillEnvironment(struct sensorData *environment)
 //===========================================
 // PrintEnvironment:
 //===========================================
-void PrintEnvironment(struct sensorData *environment)
-{
+void PrintEnvironment(struct sensorData *environment) {
   Serial.printf("Temperature: %f\n", environment->temperatureC);
   Serial.printf("Wind speed: %f\n", environment->windSpeed);
-//TODO:  Serial.printf("Wind direction: %f\n", environment->windDirection);
+  //TODO:  Serial.printf("Wind direction: %f\n", environment->windDirection);
   Serial.printf("barometer: %f\n", environment->barometricPressure);
   Serial.printf("Humidity: %f\n", environment->humidity);
   Serial.printf("UV Index: %f\n", environment->UVIndex);

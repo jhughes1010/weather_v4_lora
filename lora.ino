@@ -1,8 +1,8 @@
 //===========================================
 // loraSystemHardwareSend: Send hardware system data
 //===========================================
-void loraSystemHardwareSend(struct diagnostics hardware)
-{
+void loraSystemHardwareSend(struct diagnostics hardware) {
+
   LoRa.beginPacket();
 
   /*
@@ -12,7 +12,9 @@ void loraSystemHardwareSend(struct diagnostics hardware)
        - RF_PACONFIG_PASELECT_PABOOST -- LoRa single output via PABOOST, maximum output 20dBm
        - RF_PACONFIG_PASELECT_RFO     -- LoRa single output via RFO_HF / RFO_LF, maximum output 14dBm
   */
-  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_PABOOST);
+#ifdef heltec
+  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_RFO);
+#endif
   MonPrintf("Packet size: %i\n", sizeof(diagnostics));
   LoRa.write((byte *)&hardware, sizeof(diagnostics));
   LoRa.endPacket();
@@ -21,18 +23,20 @@ void loraSystemHardwareSend(struct diagnostics hardware)
 //===========================================
 // loraSend: Send environment sensor data
 //===========================================
-void loraSend(struct sensorData environment)
-{
+void loraSend(struct sensorData environment) {
+
   LoRa.beginPacket();
 
-  /*
+/*
      LoRa.setTxPower(txPower,RFOUT_pin);
      txPower -- 0 ~ 20
      RFOUT_pin could be RF_PACONFIG_PASELECT_PABOOST or RF_PACONFIG_PASELECT_RFO
        - RF_PACONFIG_PASELECT_PABOOST -- LoRa single output via PABOOST, maximum output 20dBm
        - RF_PACONFIG_PASELECT_RFO     -- LoRa single output via RFO_HF / RFO_LF, maximum output 14dBm
   */
+#ifdef heltec
   LoRa.setTxPower(14, RF_PACONFIG_PASELECT_RFO);
+#endif
   MonPrintf("Packet size: %i\n", sizeof(sensorData));
   LoRa.write((byte *)&environment, sizeof(sensorData));
   LoRa.endPacket();
