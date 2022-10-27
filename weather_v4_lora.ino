@@ -113,21 +113,37 @@ void setup() {
   struct diagnostics hardware = {};
 
   Serial.begin(115200);
-  Wire.begin(4, 15);
+
 
 #ifdef heltec
+  Wire.begin(4, 15);
   Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
 #else
+  Wire.begin();
   if (!LoRa.begin(915E6)) {
     Serial.println("Starting LoRa failed!");
-    while (1)
-      ;
+    //jh while (1);
   }
 #endif
+  //set hardware pins
+  pinMode(WIND_SPD_PIN, INPUT);
+  pinMode(RAIN_PIN, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(LORA_PWR, OUTPUT);
+  pinMode(SENSOR_PWR, OUTPUT);
 
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
+  digitalWrite(SENSOR_PWR, HIGH);
+  delay(500);
+
+
+  BlinkLED(2);
   printTitle();
   Serial.printf("Status: %i\n\n", status);
-
+  //Serial.println(analogRead(VBAT_PIN));
+  //Serial.println(analogRead(VSOLAR_PIN));
+  Serial.println(digitalRead(WIND_SPD_PIN));
   //get wake up reason
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
@@ -142,15 +158,21 @@ void setup() {
     case ESP_SLEEP_WAKEUP_TIMER:
       MonPrintf("Wakeup caused by timer\n");
       bootCount++;
+
       //WiFiEnable = true;
       //Rainfall interrupt pin set up
       delay(100);  //possible settling time on pin to charge
-      //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
-      //attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
+                   //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
+      attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
 
       //initialize GPIOs
 
       //power up peripherals
+      digitalWrite(SENSOR_PWR, HIGH);
+
+      //give 5 seconds to aquire wind speed data
+      delay(5000);
+
       //set TOD on interval
 
       //read sensors
@@ -161,20 +183,25 @@ void setup() {
         //environmental sensor data send
         readSensors(&environment);
         //send LoRa data structure
-        loraSend(environment);
+        //jh loraSend(environment);
       } else {
         MonPrintf("Sending hardware data\n");
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
         hardware.bootCount = bootCount;
-        loraSystemHardwareSend(hardware);
+        //jh loraSystemHardwareSend(hardware);
       }
 
       //TODO: power off peripherals
       break;
   }
 
-  //sleep
+  //preparing for sleep
+  delay(5000);
+  BlinkLED(4);
+  //Power down peripherals
+  digitalWrite(SENSOR_PWR, LOW);
+  digitalWrite(LORA_PWR, LOW);
   sleepyTime(UpdateIntervalSeconds);
 }
 
@@ -217,9 +244,9 @@ void sleepyTime(long UpdateInterval) {
   Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
   Serial.flush();
 
-  rtc_gpio_set_level(GPIO_NUM_12, 0);
+  //rtc_gpio_set_level(GPIO_NUM_12, 0);
 
-  // jh rain gauge pull-up not attached esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   elapsedTime = (int)millis() / 1000;
   //subtract elapsed time to try to maintain interval
   esp_sleep_enable_timer_wakeup((UpdateInterval - elapsedTime) * SEC);

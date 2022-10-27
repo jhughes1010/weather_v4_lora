@@ -11,8 +11,8 @@ extern "C"
 //=======================================================
 void readSensors(struct sensorData *environment)
 {
-  //TODO:readWindSpeed(environment);
-  //TODO:readWindDirection(environment);
+  readWindSpeed(environment);
+  readWindDirection(environment);
   //TODO:readTemperature(environment);
   //TODO:readLux(environment);
   //TODO:readUV(environment);
@@ -25,7 +25,7 @@ void readSensors(struct sensorData *environment)
 void readSystemSensors(struct diagnostics *hardware)
 {
   readBME(hardware);
-  //TODO:readBatteryADC(hardware);
+  readBatteryADC(hardware);
   //TODO:readSolarADC(hardware);
   readESPCoreTemp(hardware);
 }
@@ -53,12 +53,12 @@ void readTemperature (struct sensorData *environment)
 //=======================================================
 //  readBattery: read analog volatage divider value
 //=======================================================
-void readBattery (struct diagnostics *hardware)
+void readBatteryADC (struct diagnostics *hardware)
 //TODO: Rethink the low voltage warning indicator as the calibration is being moved to the LoRa receiver
 {
-  hardware->batteryADC = analogRead(VOLT_PIN);
+  hardware->batteryADC = analogRead(VBAT_PIN);
   hardware->batteryVoltage = hardware->batteryADC * batteryCalFactor;
-  MonPrintf("Battery digital ADC :%i voltage: %6.2f\n", hardware->batteryADC, hardware->batteryVoltage);
+  MonPrintf("Battery ADC :%i voltage: %6.2f\n", hardware->batteryADC, hardware->batteryVoltage);
   //check for low battery situation
   if (hardware->batteryVoltage < batteryLowVoltage)
   {
@@ -77,7 +77,7 @@ void checkBatteryVoltage (void)
 {
   int adc;
   float voltage;
-  adc = analogRead(VOLT_PIN);
+  adc = analogRead(VBAT_PIN);
   voltage = adc * batteryCalFactor;
   //check for low battery situation
   if (voltage < batteryLowVoltage)

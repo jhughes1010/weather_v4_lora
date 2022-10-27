@@ -11,9 +11,14 @@
 #define RAIN_PIN     25  //reed switch based tick counter on tip bucket
 #define WIND_DIR_PIN 35  //variable voltage divider output based on varying R network with reed switches
 #define PR_PIN       15  //photoresistor pin 
-#define VOLT_PIN     33  //voltage divider for battery monitor
+#define VBAT_PIN     39  //voltage divider for battery monitor
+#define VSOLAR_PIN   36  //voltage divider for solar voltage monitor
 #define TEMP_PIN      4  // DS18B20 hooked up to GPIO pin 4
 #define LED_BUILTIN   2  //Diagnostics using built-in LED, may be set to 12 for newer boards that do not use devkit sockets
+#define LORA_PWR     16
+#define SENSOR_PWR   26
+
+
 #define SEC 1E6          //Multiplier for uS based math
 #define WDT_TIMEOUT 120   //watchdog timer
 
@@ -24,8 +29,8 @@
 //===========================================
 //Set how often to wake and read sensors
 //===========================================
-const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (900s) for my normal operation
-//const int UpdateIntervalSeconds = 1 * 60; //Sleep timer (300s) testing
+//const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (900s) for my normal operation
+const int UpdateIntervalSeconds = .25 * 60; //Sleep timer (300s) testing
 
 
 //===========================================
@@ -64,5 +69,5 @@ const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (900s) for my normal op
 //Battery calibration
 //===========================================
 //batteryCalFactor = measured battery voltage/ADC reading
-#define batteryCalFactor .001215888
+#define batteryCalFactor .00270
 #define batteryLowVoltage 3.3
