@@ -107,7 +107,6 @@ struct sensorStatus status;
 // Setup
 //===========================================
 void setup() {
-  int status;
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment = {};
   struct diagnostics hardware = {};
@@ -122,7 +121,7 @@ void setup() {
   Wire.begin();
   if (!LoRa.begin(915E6)) {
     Serial.println("Starting LoRa failed!");
-    //jh while (1);
+    while (1);
   }
 #endif
   //set hardware pins
@@ -138,13 +137,14 @@ void setup() {
   delay(500);
 
 
-  BlinkLED(2);
+  BlinkLED(1);
   printTitle();
-  Serial.printf("Status: %i\n\n", status);
-  //Serial.println(analogRead(VBAT_PIN));
-  //Serial.println(analogRead(VSOLAR_PIN));
-  Serial.println(digitalRead(WIND_SPD_PIN));
   //get wake up reason
+  /*
+    POR - First boot
+    TIMER - Periodic send of sensor data on LoRa
+    Interrupt - Count tick in rain gauge    
+  */
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
   switch (wakeup_reason) {
@@ -159,7 +159,6 @@ void setup() {
       MonPrintf("Wakeup caused by timer\n");
       bootCount++;
 
-      //WiFiEnable = true;
       //Rainfall interrupt pin set up
       delay(100);  //possible settling time on pin to charge
                    //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
@@ -169,9 +168,8 @@ void setup() {
 
       //power up peripherals
       digitalWrite(SENSOR_PWR, HIGH);
+      digitalWrite(LORA_PWR, LOW);
 
-      //give 5 seconds to aquire wind speed data
-      delay(5000);
 
       //set TOD on interval
 
@@ -180,6 +178,8 @@ void setup() {
       sensorStatusToConsole();
       if (bootCount % 2 == 1) {
         MonPrintf("Sending sensor data\n");
+        //give 5 seconds to aquire wind speed data
+        delay(5000);
         //environmental sensor data send
         readSensors(&environment);
         //send LoRa data structure
@@ -197,8 +197,8 @@ void setup() {
   }
 
   //preparing for sleep
-  delay(5000);
-  BlinkLED(4);
+  //delay(5000);
+  BlinkLED(2);
   //Power down peripherals
   digitalWrite(SENSOR_PWR, LOW);
   digitalWrite(LORA_PWR, LOW);
