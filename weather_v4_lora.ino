@@ -13,6 +13,7 @@
 #include "heltec.h"
 #else
 #include <LoRa.h>
+#include <spi.h>
 #endif
 
 #include "defines.h"
@@ -57,6 +58,7 @@ RTC_DATA_ATTR int bootCount = 0;
 //===========================================
 struct sensorData {
   int windDirectionADC;
+  int rainTicks;
   float temperatureC;
   float windSpeed;
   float barometricPressure;
@@ -113,37 +115,43 @@ void setup() {
 
   Serial.begin(115200);
 
+  //set hardware pins
+  pinMode(WIND_SPD_PIN, INPUT);
+  pinMode(RAIN_PIN, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(SENSOR_PWR, OUTPUT);
+  pinMode(LORA_PWR, OUTPUT);
+  
+  digitalWrite(LED_BUILTIN, LOW);
+  digitalWrite(SENSOR_PWR, HIGH);
+  digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
+  delay(500);
+
+  BlinkLED(1);
+  printTitle();
+
 
 #ifdef heltec
   Wire.begin(4, 15);
   Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
 #else
   Wire.begin();
+  LoRa.setSPIFrequency(1000000);
+  LoRa.setPins(15, 17, 13);
   if (!LoRa.begin(915E6)) {
     Serial.println("Starting LoRa failed!");
     while (1);
   }
 #endif
-  //set hardware pins
-  pinMode(WIND_SPD_PIN, INPUT);
-  pinMode(RAIN_PIN, INPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(LORA_PWR, OUTPUT);
-  pinMode(SENSOR_PWR, OUTPUT);
-
-  digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
-  digitalWrite(SENSOR_PWR, HIGH);
-  delay(500);
 
 
-  BlinkLED(1);
-  printTitle();
+
+
   //get wake up reason
   /*
     POR - First boot
     TIMER - Periodic send of sensor data on LoRa
-    Interrupt - Count tick in rain gauge    
+    Interrupt - Count tick in rain gauge
   */
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("Wakeup reason: %d\n", wakeup_reason);
@@ -161,14 +169,14 @@ void setup() {
 
       //Rainfall interrupt pin set up
       delay(100);  //possible settling time on pin to charge
-                   //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
+      //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
       attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
 
       //initialize GPIOs
 
       //power up peripherals
       digitalWrite(SENSOR_PWR, HIGH);
-      digitalWrite(LORA_PWR, LOW);
+      //digitalWrite(LORA_PWR, LOW);
 
 
       //set TOD on interval
@@ -177,31 +185,32 @@ void setup() {
       sensorEnable();
       sensorStatusToConsole();
       if (bootCount % 2 == 1) {
-        MonPrintf("Sending sensor data\n");
+        title("Sending sensor data");
         //give 5 seconds to aquire wind speed data
         delay(5000);
         //environmental sensor data send
         readSensors(&environment);
         //send LoRa data structure
-        //jh loraSend(environment);
+        loraSend(environment);
       } else {
-        MonPrintf("Sending hardware data\n");
+        title("Sending hardware data");
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
         hardware.bootCount = bootCount;
-        //jh loraSystemHardwareSend(hardware);
+        loraSystemHardwareSend(hardware);
       }
 
-      //TODO: power off peripherals
+
+      //Power down peripherals
+      digitalWrite(SENSOR_PWR, LOW);
+      digitalWrite(LORA_PWR, LOW);
       break;
   }
 
   //preparing for sleep
-  //delay(5000);
-  BlinkLED(2);
-  //Power down peripherals
-  digitalWrite(SENSOR_PWR, LOW);
-  digitalWrite(LORA_PWR, LOW);
+  //delay(10000);
+  LoRa.end();
+  BlinkLED(4);
   sleepyTime(UpdateIntervalSeconds);
 }
 
@@ -240,8 +249,8 @@ void printTitle(void) {
 //===========================================
 void sleepyTime(long UpdateInterval) {
   int elapsedTime;
-  Serial.println("\n\n\nGoing to sleep now...");
-  Serial.printf("Waking in %i seconds\n\n\n\n\n\n\n\n\n\n", UpdateInterval);
+  Serial.println("Going to sleep now...");
+  Serial.printf("Waking in %i seconds\n\n\n", UpdateInterval);
   Serial.flush();
 
   //rtc_gpio_set_level(GPIO_NUM_12, 0);
@@ -329,4 +338,20 @@ void PrintEnvironment(struct sensorData *environment) {
   Serial.printf("Humidity: %f\n", environment->humidity);
   Serial.printf("UV Index: %f\n", environment->UVIndex);
   Serial.printf("Lux: %f\n", environment->lux);
+}
+
+//===========================================
+// Title: banner to terminal
+//===========================================
+void title(const char* format, ... )
+{ char buffer[200];
+  va_list args;
+  va_start(args, format);
+  vsprintf(buffer, format, args);
+  va_end( args );
+#ifdef SerialMonitor
+  Serial.printf("==============================================\n");
+  Serial.printf("%s\n", buffer);
+  Serial.printf("==============================================\n");
+#endif
 }

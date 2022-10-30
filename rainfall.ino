@@ -3,6 +3,15 @@ volatile unsigned long timeSinceLastTip = 0;
 volatile unsigned long validTimeSinceLastTip = 0;
 volatile unsigned long lastTip = 0;
 
+//
+//
+//
+void copyRainTicks(struct sensorData *environment)
+{
+  environment->rainTicks = rainTicks;
+  MonPrintf("Rain ticks: %i\n", environment->rainTicks);
+}
+
 //=======================================================================
 //  rainTick: ISR for rain tip gauge count
 //=======================================================================

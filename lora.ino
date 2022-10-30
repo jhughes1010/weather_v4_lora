@@ -19,6 +19,7 @@ void loraSystemHardwareSend(struct diagnostics hardware) {
   LoRa.write((byte *)&hardware, sizeof(diagnostics));
   //should be blocking mode
   LoRa.endPacket();
+  MonPrintf("Done TX\n");
 }
 
 //===========================================
@@ -42,4 +43,5 @@ void loraSend(struct sensorData environment) {
   LoRa.write((byte *)&environment, sizeof(sensorData));
   //should be blocking mode
   LoRa.endPacket();
+  MonPrintf("Done TX\n");
 }

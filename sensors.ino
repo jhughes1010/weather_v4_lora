@@ -11,6 +11,7 @@ extern "C"
 //=======================================================
 void readSensors(struct sensorData *environment)
 {
+  copyRainTicks(environment);
   readWindSpeed(environment);
   readWindDirection(environment);
   //TODO:readTemperature(environment);
@@ -169,8 +170,11 @@ void readESPCoreTemp(struct diagnostics *hardware)
 {
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
-  coreC = (coreF - 32) * 5 / 9;
+  coreC = (coreF - 32)*5/9;
   hardware->coreC = coreC;
+  MonPrintf("F %i\n",coreF);
+  MonPrintf("C %i\n",coreC);
+  
 }
 
 //===========================================
