@@ -114,6 +114,7 @@ void setup() {
   struct diagnostics hardware = {};
 
   Serial.begin(115200);
+  printTitle();
 
   //set hardware pins
   pinMode(WIND_SPD_PIN, INPUT);
@@ -121,14 +122,18 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SENSOR_PWR, OUTPUT);
   pinMode(LORA_PWR, OUTPUT);
-  
+
   digitalWrite(LED_BUILTIN, LOW);
+
+  //let power stabilize before turning on LoRa
+  delay(1000);
   digitalWrite(SENSOR_PWR, HIGH);
+  delay(1000);
   digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
   delay(500);
 
   BlinkLED(1);
-  printTitle();
+
 
 
 #ifdef heltec
@@ -143,7 +148,7 @@ void setup() {
     while (1);
   }
 #endif
-
+  title("LoRa radio online");
 
 
 
@@ -154,7 +159,7 @@ void setup() {
     Interrupt - Count tick in rain gauge
   */
   wakeup_reason = esp_sleep_get_wakeup_cause();
-  MonPrintf("Wakeup reason: %d\n", wakeup_reason);
+  MonPrintf("\n\nWakeup reason: %d\n", wakeup_reason);
   switch (wakeup_reason) {
     //Rain Tip Gauge
     case ESP_SLEEP_WAKEUP_EXT0:
@@ -164,7 +169,7 @@ void setup() {
 
     //Timer
     case ESP_SLEEP_WAKEUP_TIMER:
-      MonPrintf("Wakeup caused by timer\n");
+      title("Wakeup caused by timer");
       bootCount++;
 
       //Rainfall interrupt pin set up
@@ -175,7 +180,7 @@ void setup() {
       //initialize GPIOs
 
       //power up peripherals
-      digitalWrite(SENSOR_PWR, HIGH);
+      //digitalWrite(SENSOR_PWR, HIGH);
       //digitalWrite(LORA_PWR, LOW);
 
 
@@ -192,6 +197,7 @@ void setup() {
         readSensors(&environment);
         //send LoRa data structure
         loraSend(environment);
+        PrintEnvironment(environment);
       } else {
         title("Sending hardware data");
         //system (battery levels, ESP32 core temp, case temp, etc) send
@@ -226,7 +232,7 @@ void loop() {
 //===================================================
 void printTitle(void) {
   char buffer[32];
-  Serial.printf("Weather station v4\n");
+  Serial.printf("\n\nWeather station v4\n");
   Serial.printf("Version %s\n\n", VERSION);
 
 #ifdef heltec
@@ -253,7 +259,8 @@ void sleepyTime(long UpdateInterval) {
   Serial.printf("Waking in %i seconds\n\n\n", UpdateInterval);
   Serial.flush();
 
-  //rtc_gpio_set_level(GPIO_NUM_12, 0);
+  //rtc_gpio_set_level(GPIO_NUM_16, HIGH);
+  //rtc_gpio_set_level(GPIO_NUM_26, HIGH);
 
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   elapsedTime = (int)millis() / 1000;
@@ -330,14 +337,14 @@ void FillEnvironment(struct sensorData *environment) {
 //===========================================
 // PrintEnvironment:
 //===========================================
-void PrintEnvironment(struct sensorData *environment) {
-  Serial.printf("Temperature: %f\n", environment->temperatureC);
-  Serial.printf("Wind speed: %f\n", environment->windSpeed);
+void PrintEnvironment(struct sensorData environment) {
+  Serial.printf("Temperature: %f\n", environment.temperatureC);
+  Serial.printf("Wind speed: %f\n", environment.windSpeed);
   //TODO:  Serial.printf("Wind direction: %f\n", environment->windDirection);
-  Serial.printf("barometer: %f\n", environment->barometricPressure);
-  Serial.printf("Humidity: %f\n", environment->humidity);
-  Serial.printf("UV Index: %f\n", environment->UVIndex);
-  Serial.printf("Lux: %f\n", environment->lux);
+  Serial.printf("barometer: %f\n", environment.barometricPressure);
+  Serial.printf("Humidity: %f\n", environment.humidity);
+  Serial.printf("UV Index: %f\n", environment.UVIndex);
+  Serial.printf("Lux: %f\n", environment.lux);
 }
 
 //===========================================

@@ -43,6 +43,8 @@ void readWindSpeed(struct sensorData *environment) {
   windSpeed = windSpeed * 1.60934;
 #endif
   MonPrintf("WindSpeed: %f\n", windSpeed);
+  
+  //round to nearest 10th
   windSpeed = int((windSpeed + .05) * 10) / 10;
   environment->windSpeed = windSpeed;
 }

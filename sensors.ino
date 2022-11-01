@@ -14,9 +14,9 @@ void readSensors(struct sensorData *environment)
   copyRainTicks(environment);
   readWindSpeed(environment);
   readWindDirection(environment);
-  //TODO:readTemperature(environment);
-  //TODO:readLux(environment);
-  //TODO:readUV(environment);
+  readTemperature(environment);
+  readLux(environment);
+  readUV(environment);
   readBME(environment);
 }
 
@@ -27,7 +27,7 @@ void readSystemSensors(struct diagnostics *hardware)
 {
   readBME(hardware);
   readBatteryADC(hardware);
-  //TODO:readSolarADC(hardware);
+  readSolarADC(hardware);
   readESPCoreTemp(hardware);
 }
 //=======================================================
@@ -49,6 +49,15 @@ void readTemperature (struct sensorData *environment)
     MonPrintf("Error: Could not read temperature data\n");
     environment->temperatureC = -40;
   }
+}
+
+//=======================================================
+//  readSolarADC: read analog volatage divider value
+//=======================================================
+void readSolarADC (struct diagnostics *hardware)
+{
+  hardware->solarADC = analogRead(VSOLAR_PIN);
+  MonPrintf("Solar ADC :%i\n", hardware->solarADC);
 }
 
 //=======================================================
@@ -170,11 +179,11 @@ void readESPCoreTemp(struct diagnostics *hardware)
 {
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
-  coreC = (coreF - 32)*5/9;
+  coreC = (coreF - 32) * 5 / 9;
   hardware->coreC = coreC;
-  MonPrintf("F %i\n",coreF);
-  MonPrintf("C %i\n",coreC);
-  
+  MonPrintf("F %i\n", coreF);
+  MonPrintf("C %i\n", coreC);
+
 }
 
 //===========================================
