@@ -23,6 +23,7 @@
 #define WDT_TIMEOUT 30   //watchdog timer
 
 #define BAND 915E6
+//#define BAND 433E6
 
 #define SerialMonitor
 
