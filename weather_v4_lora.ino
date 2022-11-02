@@ -4,10 +4,13 @@
 
 /* History
    0.9.0 10-2-22 Initial development for Heltec ESP32 LoRa v2 devkit
+
+   1.0.0 11-02-22 First release
+                  Much fine tuning to do, but interested in getting feedback from users
 */
 
 //Hardware build target: ESP32
-#define VERSION "0.9.0"
+#define VERSION "1.0.0"
 
 #ifdef heltec
 #include "heltec.h"
@@ -22,6 +25,7 @@
 #include <esp_task_wdt.h>
 #include <esp_system.h>
 #include <driver/rtc_io.h>
+#include <sys/time.h>
 
 #include <time.h>
 #include <DallasTemperature.h>
@@ -31,7 +35,6 @@
 #include <BME280I2C.h>
 #include <Adafruit_SI1145.h>
 //#include <stdarg.h>
-//#include <PubSubClient.h>
 #include <soc/soc.h>
 #include <soc/rtc_cntl_reg.h>
 #include <esp_task_wdt.h>
@@ -43,15 +46,6 @@
 
 #define OLED_RESET 4
 
-//===========================================
-// RTC Memory storage
-//===========================================
-RTC_DATA_ATTR volatile int rainTicks = 0;
-//RTC_DATA_ATTR int lastHour = 0;
-//RTC_DATA_ATTR time_t nextUpdate;
-//RTC_DATA_ATTR struct rainfallData rainfall;
-RTC_DATA_ATTR int bootCount = 0;
-//RTC_DATA_ATTR unsigned int elapsedTime = 0;
 
 //===========================================
 // Weather-environment structure
@@ -90,6 +84,30 @@ struct sensorStatus {
 };
 
 //===========================================
+// rainfallData structure
+//===========================================
+struct rainfallData
+{
+  unsigned int intervalRainfall;
+  unsigned int hourlyRainfall[24];
+  unsigned int current60MinRainfall[12];
+  unsigned int hourlyCarryover;
+  unsigned int priorHour;
+  unsigned int minuteCarryover;
+  unsigned int priorMinute;
+};
+
+//===========================================
+// RTC Memory storage
+//===========================================
+RTC_DATA_ATTR volatile int rainTicks = 0;
+//RTC_DATA_ATTR int lastHour = 0;
+//RTC_DATA_ATTR time_t nextUpdate;
+RTC_DATA_ATTR struct rainfallData rainfall;
+RTC_DATA_ATTR int bootCount = 0;
+//RTC_DATA_ATTR unsigned int elapsedTime = 0;
+
+//===========================================
 // ISR Prototypes
 //===========================================
 void IRAM_ATTR rainTick(void);
@@ -103,6 +121,9 @@ BME280I2C bme;
 Adafruit_SI1145 uv = Adafruit_SI1145();
 bool lowBattery = false;
 struct sensorStatus status;
+time_t now;
+time_t nextUpdate;
+struct tm timeinfo;
 //long rssi = 0;
 
 //===========================================
@@ -112,9 +133,26 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment = {};
   struct diagnostics hardware = {};
+  struct timeval tv;
+
 
   Serial.begin(115200);
   printTitle();
+
+  //Enable WDT for any lock-up events
+  esp_task_wdt_init(WDT_TIMEOUT, true);
+  esp_task_wdt_add(NULL);
+
+  //time testing
+
+
+  time(&now);
+  localtime_r(&now, &timeinfo);
+  updateWake();
+
+  Serial.print("The current date/time is ");
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+  //-- end time testing
 
   //set hardware pins
   pinMode(WIND_SPD_PIN, INPUT);
@@ -125,30 +163,11 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, LOW);
 
-  //let power stabilize before turning on LoRa
-  delay(1000);
-  digitalWrite(SENSOR_PWR, HIGH);
-  delay(1000);
-  digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
-  delay(500);
+
 
   BlinkLED(1);
 
 
-
-#ifdef heltec
-  Wire.begin(4, 15);
-  Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
-#else
-  Wire.begin();
-  LoRa.setSPIFrequency(1000000);
-  LoRa.setPins(15, 17, 13);
-  if (!LoRa.begin(915E6)) {
-    Serial.println("Starting LoRa failed!");
-    while (1);
-  }
-#endif
-  title("LoRa radio online");
 
 
 
@@ -160,17 +179,55 @@ void setup() {
   */
   wakeup_reason = esp_sleep_get_wakeup_cause();
   MonPrintf("\n\nWakeup reason: %d\n", wakeup_reason);
+  //MonPrintf("rainTicks: %i\n", rainTicks);
   switch (wakeup_reason) {
+    //Power on reset
+    case 0:
+      // set current day/time
+
+      tv.tv_sec =   1667301066;  // enter UTC UNIX time (get it from https://www.unixtimestamp.com )
+      settimeofday(&tv, NULL);
+      //default to wake 5 sec after POR
+      nextUpdate = 5;
+      break;
+
     //Rain Tip Gauge
     case ESP_SLEEP_WAKEUP_EXT0:
       MonPrintf("Wakeup caused by external signal using RTC_IO\n");
+      //updateWake();
       rainTicks++;
       break;
 
     //Timer
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
+      //updateWake();
       bootCount++;
+
+      //Turn on LoRa
+      //let power stabilize before turning on LoRa
+      delay(500);
+      digitalWrite(SENSOR_PWR, HIGH);
+      delay(500);
+      digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
+      delay(500);
+
+#ifdef heltec
+      Wire.begin(4, 15);
+      Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
+#else
+      Wire.begin();
+      LoRa.setSPIFrequency(1000000);
+      LoRa.setPins(15, 17, 13);
+      if (!LoRa.begin(BAND)) {
+        Serial.println("Starting LoRa failed!");
+        while (1);
+      }
+#endif
+      title("LoRa radio online");
+
+      //End LoRa turn on
+
 
       //Rainfall interrupt pin set up
       delay(100);  //possible settling time on pin to charge
@@ -193,8 +250,16 @@ void setup() {
         title("Sending sensor data");
         //give 5 seconds to aquire wind speed data
         delay(5000);
+
         //environmental sensor data send
         readSensors(&environment);
+
+        //update rainfall
+        addTipsToHour(rainTicks);
+        clearRainfallHour(timeinfo.tm_hour + 1);
+        printHourlyArray();
+        rainTicks = 0;
+
         //send LoRa data structure
         loraSend(environment);
         PrintEnvironment(environment);
@@ -208,16 +273,15 @@ void setup() {
 
 
       //Power down peripherals
+      LoRa.end();
       digitalWrite(SENSOR_PWR, LOW);
       digitalWrite(LORA_PWR, LOW);
       break;
   }
 
   //preparing for sleep
-  //delay(10000);
-  LoRa.end();
-  BlinkLED(4);
-  sleepyTime(UpdateIntervalSeconds);
+  BlinkLED(1);
+  sleepyTime(nextUpdate);
 }
 
 //===================================================
@@ -253,19 +317,27 @@ void printTitle(void) {
 // sleepyTime: prepare for sleep and set
 // timer and EXT0 WAKE events
 //===========================================
-void sleepyTime(long UpdateInterval) {
+void sleepyTime(long nextUpdate) {
   int elapsedTime;
   Serial.println("Going to sleep now...");
-  Serial.printf("Waking in %i seconds\n\n\n", UpdateInterval);
-  Serial.flush();
+
 
   //rtc_gpio_set_level(GPIO_NUM_16, HIGH);
   //rtc_gpio_set_level(GPIO_NUM_26, HIGH);
 
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   elapsedTime = (int)millis() / 1000;
+
   //subtract elapsed time to try to maintain interval
-  esp_sleep_enable_timer_wakeup((UpdateInterval - elapsedTime) * SEC);
+  nextUpdate -= elapsedTime;
+  if (nextUpdate < 3)
+  {
+    nextUpdate = 3;
+  }
+  Serial.printf("Elapsed time: %i seconds\n", elapsedTime);
+  Serial.printf("Waking in %i seconds\n", nextUpdate);
+  Serial.flush();
+  esp_sleep_enable_timer_wakeup(nextUpdate * SEC);
   esp_deep_sleep_start();
 }
 

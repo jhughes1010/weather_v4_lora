@@ -20,7 +20,7 @@
 
 
 #define SEC 1E6          //Multiplier for uS based math
-#define WDT_TIMEOUT 120   //watchdog timer
+#define WDT_TIMEOUT 30   //watchdog timer
 
 #define BAND 915E6
 
@@ -29,30 +29,8 @@
 //===========================================
 //Set how often to wake and read sensors
 //===========================================
-const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (900s) for my normal operation
-//const int UpdateIntervalSeconds = .5 * 60; //Sleep timer (300s) testing
-
-
-//===========================================
-//Metric or Imperial measurements
-//===========================================
-//#define METRIC
-
-//===========================================
-//Use optional NVM for backup
-//This is a failsafe for RESET events out of
-//system control
-//===========================================
-//#define USE_EEPROM
-
-//===========================================
-//BME280 altitude offsets (set by user)
-//===========================================
-//#define ALTITUDE_OFFSET_IMPERIAL 5.58
-//#define ALTITUDE_OFFSET_METRIC 142.6
-//Paul J
-#define ALTITUDE_OFFSET_IMPERIAL 6.66
-#define ALTITUDE_OFFSET_METRIC 170.2
+const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (180s) for my normal operation
+//const int UpdateIntervalSeconds = 1 * 60; //Sleep timer (60s) testing
 
 //===========================================
 //BH1750 Enable
