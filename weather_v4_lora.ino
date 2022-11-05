@@ -10,7 +10,7 @@
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.0.0"
+#define VERSION "1.0.0 beta"
 
 #ifdef heltec
 #include "heltec.h"
@@ -52,7 +52,8 @@
 //===========================================
 struct sensorData {
   int windDirectionADC;
-  int rainTicks;
+  int rainTicks24h;
+  int rainTicks60m;
   float temperatureC;
   float windSpeed;
   float barometricPressure;
@@ -90,7 +91,7 @@ struct rainfallData
 {
   unsigned int intervalRainfall;
   unsigned int hourlyRainfall[24];
-  unsigned int current60MinRainfall[12];
+  unsigned int current60MinRainfall[5];
   unsigned int hourlyCarryover;
   unsigned int priorHour;
   unsigned int minuteCarryover;
@@ -234,14 +235,8 @@ void setup() {
       //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
       attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
 
-      //initialize GPIOs
 
-      //power up peripherals
-      //digitalWrite(SENSOR_PWR, HIGH);
-      //digitalWrite(LORA_PWR, LOW);
-
-
-      //set TOD on interval
+      //TODO: set TOD on interval
 
       //read sensors
       sensorEnable();
@@ -251,14 +246,19 @@ void setup() {
         //give 5 seconds to aquire wind speed data
         delay(5000);
 
-        //environmental sensor data send
-        readSensors(&environment);
-
         //update rainfall
+        addTipsToMinute(rainTicks);
+        printMinuteArray();
+        clearRainfallMinute(timeinfo.tm_min + 5);
+        printMinuteArray();
+
         addTipsToHour(rainTicks);
         clearRainfallHour(timeinfo.tm_hour + 1);
-        printHourlyArray();
+        //printHourlyArray();
         rainTicks = 0;
+
+        //environmental sensor data send
+        readSensors(&environment);
 
         //send LoRa data structure
         loraSend(environment);

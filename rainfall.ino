@@ -6,10 +6,16 @@ volatile unsigned long lastTip = 0;
 //
 //
 //
-void copyRainTicks(struct sensorData *environment)
+void copyRainTicks24h(struct sensorData *environment)
 {
-  environment->rainTicks = last24();
-  MonPrintf("Rain ticks: %i\n", environment->rainTicks);
+  environment->rainTicks24h = last24();
+  MonPrintf("Rain ticks: %i\n", environment->rainTicks24h);
+}
+
+void copyRainTicks60m(struct sensorData *environment)
+{
+  environment->rainTicks60m = last60min();
+  MonPrintf("Rain ticks: %i\n", environment->rainTicks60m);
 }
 
 //=======================================================================
@@ -89,5 +95,74 @@ int last24(void)
   totalRainfall += rainfall.hourlyCarryover;
 
   MonPrintf("Total rainfall (last 24 hours): %i\n", totalRainfall);
+  return totalRainfall;
+}
+//=======================================================================
+//
+//  Minute accumulation routines
+//
+//=======================================================================
+// NOTE: When speaking of minutes and minute array, we use 5 min as
+// minimum grouping for minute-by-minute rainfall
+
+
+
+//=======================================================================
+//  clearRainfallMinute: zero out specific minute element of rainfall structure array
+//=======================================================================
+void clearRainfallMinute(int minutePtr)
+{
+  int minuteIndex;
+  minuteIndex = (float)timeinfo.tm_min / 10;
+  //Clear carryover if hourPtr is not matching prior hourPtr value (we have a new hour)
+  if (rainfall.priorHour != minutePtr)
+  {
+    rainfall.hourlyCarryover = 0;
+  }
+  //move contents of oldest hour to the carryover location and set hour to zero
+  rainfall.hourlyCarryover += rainfall.hourlyRainfall[minutePtr % 5];
+  rainfall.hourlyRainfall[minutePtr % 5] = 0;
+
+  //rainfall.priorHour = hourPtr;
+}
+
+//=======================================================================
+//  addTipsToMinute: increment current hour tip count
+//=======================================================================
+void addTipsToMinute(int count)
+{
+  MonPrintf("Minute: %i\n", timeinfo.tm_min);
+  int minuteIndex = (float)timeinfo.tm_min / 10;
+  MonPrintf("Minute Index: %i\n", minuteIndex);
+  rainfall.current60MinRainfall[minuteIndex % 5] += count;
+}
+
+//=======================================================================
+//  printMinuteArray: diagnostic routine to print minute rainfall array to terminal
+//=======================================================================
+void printMinuteArray (void)
+{
+  int minuteIndex = 0;
+  for (minuteIndex = 0; minuteIndex < 5; minuteIndex++)
+  {
+    MonPrintf("Minute %i: %u\n", minuteIndex * 10, rainfall.current60MinRainfall[minuteIndex]);
+  }
+}
+
+//=======================================================================
+//  last60min: return tip counter for last 60 minutes
+//=======================================================================
+int last60min(void)
+{
+  int minute;
+  int totalRainfall = 0;
+  for (minute = 0; minute < 5; minute++)
+  {
+    totalRainfall += rainfall.current60MinRainfall[minute];
+  }
+  //add carryover value
+  totalRainfall += rainfall.minuteCarryover;
+
+  MonPrintf("Total rainfall (last 60 minutes): %i\n", totalRainfall);
   return totalRainfall;
 }

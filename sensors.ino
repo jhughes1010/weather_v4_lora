@@ -11,7 +11,8 @@ extern "C"
 //=======================================================
 void readSensors(struct sensorData *environment)
 {
-  copyRainTicks(environment);
+  copyRainTicks24h(environment);
+  copyRainTicks60m(environment);
   readWindSpeed(environment);
   readWindDirection(environment);
   readTemperature(environment);
