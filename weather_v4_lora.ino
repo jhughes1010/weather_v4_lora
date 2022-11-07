@@ -7,10 +7,18 @@
 
    1.0.0 11-02-22 First release
                   Much fine tuning to do, but interested in getting feedback from users
+
+   1.0.1 11-06-22 Minor code changes
+                  Passing void ptr to universal LoRaSend function
+                  Refactor LoRa powerup and powerdown routines (utility.ino)
+                  Better positioning of LoRa power up (after sensor data is acquired)
+                  Corrected error in 60min rainfall routines (only using 5 slots, not 6)
+                    ***Still not perfect on 60 minute cutoff
+                  
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.0.0 beta"
+#define VERSION "1.0.1 beta"
 
 #ifdef heltec
 #include "heltec.h"
@@ -136,6 +144,9 @@ void setup() {
   struct diagnostics hardware = {};
   struct timeval tv;
 
+  void *LoRaPacket;
+  int LoRaPacketSize;
+
 
   Serial.begin(115200);
   printTitle();
@@ -202,54 +213,30 @@ void setup() {
     //Timer
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
-      //updateWake();
+      powerUpSensors();
       bootCount++;
 
-      //Turn on LoRa
-      //let power stabilize before turning on LoRa
-      delay(500);
-      digitalWrite(SENSOR_PWR, HIGH);
-      delay(500);
-      digitalWrite(LORA_PWR, HIGH);  //TODO: Need these as RTC_IO pins to stay enabled all the time
-      delay(500);
-
-#ifdef heltec
-      Wire.begin(4, 15);
-      Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
-#else
-      Wire.begin();
-      LoRa.setSPIFrequency(1000000);
-      LoRa.setPins(15, 17, 13);
-      if (!LoRa.begin(BAND)) {
-        Serial.println("Starting LoRa failed!");
-        while (1);
-      }
-#endif
-      title("LoRa radio online");
-
-      //End LoRa turn on
-
-
       //Rainfall interrupt pin set up
-      delay(100);  //possible settling time on pin to charge
-      //attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
+      //delay(100);  //possible settling time on pin to charge
+      attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
       attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
-
 
       //TODO: set TOD on interval
 
-      //read sensors
-      sensorEnable();
-      sensorStatusToConsole();
+
       if (bootCount % 2 == 1) {
         title("Sending sensor data");
         //give 5 seconds to aquire wind speed data
         delay(5000);
 
+        //read sensors
+        sensorEnable();
+        sensorStatusToConsole();
+
         //update rainfall
         addTipsToMinute(rainTicks);
         printMinuteArray();
-        clearRainfallMinute(timeinfo.tm_min + 5);
+        clearRainfallMinute(timeinfo.tm_min + 10);
         printMinuteArray();
 
         addTipsToHour(rainTicks);
@@ -260,22 +247,25 @@ void setup() {
         //environmental sensor data send
         readSensors(&environment);
 
-        //send LoRa data structure
-        loraSend(environment);
+        LoRaPacket = &environment;
+        LoRaPacketSize = sizeof(environment);
         PrintEnvironment(environment);
       } else {
         title("Sending hardware data");
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
         hardware.bootCount = bootCount;
-        loraSystemHardwareSend(hardware);
+
+        LoRaPacket = &hardware;
+        LoRaPacketSize = sizeof(hardware);
       }
-
-
+      //TODO: New LoRa power up
+      LoRaPowerUp();
+      //TODO: Send Environment or hardware
+      loraSend(LoRaPacket, LoRaPacketSize);
       //Power down peripherals
       LoRa.end();
-      digitalWrite(SENSOR_PWR, LOW);
-      digitalWrite(LORA_PWR, LOW);
+      powerDownAll();
       break;
   }
 

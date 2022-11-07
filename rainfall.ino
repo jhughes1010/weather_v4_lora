@@ -102,7 +102,7 @@ int last24(void)
 //  Minute accumulation routines
 //
 //=======================================================================
-// NOTE: When speaking of minutes and minute array, we use 5 min as
+// NOTE: When speaking of minutes and minute array, we use 10 min as
 // minimum grouping for minute-by-minute rainfall
 
 
@@ -113,17 +113,16 @@ int last24(void)
 void clearRainfallMinute(int minutePtr)
 {
   int minuteIndex;
-  minuteIndex = (float)timeinfo.tm_min / 10;
+  minuteIndex = (float)minutePtr / 10;
   //Clear carryover if hourPtr is not matching prior hourPtr value (we have a new hour)
-  if (rainfall.priorHour != minutePtr)
+  if (rainfall.priorMinute != minuteIndex)
   {
-    rainfall.hourlyCarryover = 0;
+    rainfall.minuteCarryover = 0;
   }
-  //move contents of oldest hour to the carryover location and set hour to zero
-  rainfall.hourlyCarryover += rainfall.hourlyRainfall[minutePtr % 5];
-  rainfall.hourlyRainfall[minutePtr % 5] = 0;
-
-  //rainfall.priorHour = hourPtr;
+  //move contents of oldest minute to the carryover location and set minute to zero
+  rainfall.minuteCarryover += rainfall.current60MinRainfall[minuteIndex % 6];
+  rainfall.current60MinRainfall[minuteIndex % 6] = 0;
+  rainfall.priorMinute = minuteIndex;
 }
 
 //=======================================================================
@@ -134,7 +133,7 @@ void addTipsToMinute(int count)
   MonPrintf("Minute: %i\n", timeinfo.tm_min);
   int minuteIndex = (float)timeinfo.tm_min / 10;
   MonPrintf("Minute Index: %i\n", minuteIndex);
-  rainfall.current60MinRainfall[minuteIndex % 5] += count;
+  rainfall.current60MinRainfall[minuteIndex % 6] += count;
 }
 
 //=======================================================================
@@ -143,7 +142,7 @@ void addTipsToMinute(int count)
 void printMinuteArray (void)
 {
   int minuteIndex = 0;
-  for (minuteIndex = 0; minuteIndex < 5; minuteIndex++)
+  for (minuteIndex = 0; minuteIndex < 6; minuteIndex++)
   {
     MonPrintf("Minute %i: %u\n", minuteIndex * 10, rainfall.current60MinRainfall[minuteIndex]);
   }
@@ -154,11 +153,11 @@ void printMinuteArray (void)
 //=======================================================================
 int last60min(void)
 {
-  int minute;
+  int minuteIndex;
   int totalRainfall = 0;
-  for (minute = 0; minute < 5; minute++)
+  for (minuteIndex = 0; minuteIndex < 6; minuteIndex++)
   {
-    totalRainfall += rainfall.current60MinRainfall[minute];
+    totalRainfall += rainfall.current60MinRainfall[minuteIndex];
   }
   //add carryover value
   totalRainfall += rainfall.minuteCarryover;

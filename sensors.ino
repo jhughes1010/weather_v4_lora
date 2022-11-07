@@ -6,6 +6,21 @@ extern "C"
   uint8_t temprature_sens_read();
 }
 
+
+//===========================================
+// sensorEnable: Initialize i2c and 1w sensors
+//===========================================
+void sensorEnable(void)
+{
+  status.temperature = 1;
+  Wire.begin();
+  status.bme = bme.begin();
+  status.uv = uv.begin();
+  status.lightMeter = lightMeter.begin();
+
+  temperatureSensor.begin();                //returns void - cannot directly check
+}
+
 //=======================================================
 //  readSensors: Read all sensors and battery voltage
 //=======================================================
@@ -184,20 +199,6 @@ void readESPCoreTemp(struct diagnostics *hardware)
   MonPrintf("F %i\n", coreF);
   MonPrintf("C %i\n", coreC);
 
-}
-
-//===========================================
-// sensorEnable: Initialize i2c and 1w sensors
-//===========================================
-void sensorEnable(void)
-{
-  status.temperature = 1;
-  //Wire.setClock(100000);
-  status.bme = bme.begin();
-  status.uv = uv.begin();
-  status.lightMeter = lightMeter.begin();
-
-  temperatureSensor.begin();                //returns void - cannot directly check
 }
 
 //===========================================
