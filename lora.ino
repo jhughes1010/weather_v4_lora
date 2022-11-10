@@ -1,39 +1,12 @@
 //===========================================
-// loraSystemHardwareSend: Send hardware system data
-//===========================================
-void loraSystemHardwareSend(struct diagnostics hardware)
-{
-  LoRa.beginPacket();
-
-  /*
-     LoRa.setTxPower(txPower,RFOUT_pin);
-     txPower -- 0 ~ 20
-     RFOUT_pin could be RF_PACONFIG_PASELECT_PABOOST or RF_PACONFIG_PASELECT_RFO
-       - RF_PACONFIG_PASELECT_PABOOST -- LoRa single output via PABOOST, maximum output 20dBm
-       - RF_PACONFIG_PASELECT_RFO     -- LoRa single output via RFO_HF / RFO_LF, maximum output 14dBm
-  */
-  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_PABOOST);
-  MonPrintf("Packet size: %i\n", sizeof(diagnostics));
-  LoRa.write((byte *)&hardware, sizeof(diagnostics));
-  LoRa.endPacket();
-}
-
-//===========================================
 // loraSend: Send environment sensor data
 //===========================================
-void loraSend(struct sensorData environment)
-{
-  LoRa.beginPacket();
+void loraSend(void * packetStart, int packetSize) {
 
-  /*
-     LoRa.setTxPower(txPower,RFOUT_pin);
-     txPower -- 0 ~ 20
-     RFOUT_pin could be RF_PACONFIG_PASELECT_PABOOST or RF_PACONFIG_PASELECT_RFO
-       - RF_PACONFIG_PASELECT_PABOOST -- LoRa single output via PABOOST, maximum output 20dBm
-       - RF_PACONFIG_PASELECT_RFO     -- LoRa single output via RFO_HF / RFO_LF, maximum output 14dBm
-  */
-  LoRa.setTxPower(14, RF_PACONFIG_PASELECT_RFO);
-  MonPrintf("Packet size: %i\n", sizeof(sensorData));
-  LoRa.write((byte *)&environment, sizeof(sensorData));
+  LoRa.beginPacket();
+  MonPrintf("Packet size: %i\n", packetSize);
+  LoRa.write((byte *)packetStart, packetSize);
+  //should be blocking mode
   LoRa.endPacket();
+  MonPrintf("Done TX\n");
 }

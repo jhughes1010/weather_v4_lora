@@ -6,16 +6,33 @@ extern "C"
   uint8_t temprature_sens_read();
 }
 
+
+//===========================================
+// sensorEnable: Initialize i2c and 1w sensors
+//===========================================
+void sensorEnable(void)
+{
+  status.temperature = 1;
+  Wire.begin();
+  status.bme = bme.begin();
+  status.uv = uv.begin();
+  status.lightMeter = lightMeter.begin();
+
+  temperatureSensor.begin();                //returns void - cannot directly check
+}
+
 //=======================================================
 //  readSensors: Read all sensors and battery voltage
 //=======================================================
 void readSensors(struct sensorData *environment)
 {
-  //TODO:readWindSpeed(environment);
-  //TODO:readWindDirection(environment);
-  //TODO:readTemperature(environment);
-  //TODO:readLux(environment);
-  //TODO:readUV(environment);
+  copyRainTicks24h(environment);
+  copyRainTicks60m(environment);
+  readWindSpeed(environment);
+  readWindDirection(environment);
+  readTemperature(environment);
+  readLux(environment);
+  readUV(environment);
   readBME(environment);
 }
 
@@ -25,8 +42,8 @@ void readSensors(struct sensorData *environment)
 void readSystemSensors(struct diagnostics *hardware)
 {
   readBME(hardware);
-  //TODO:readBatteryADC(hardware);
-  //TODO:readSolarADC(hardware);
+  readBatteryADC(hardware);
+  readSolarADC(hardware);
   readESPCoreTemp(hardware);
 }
 //=======================================================
@@ -51,14 +68,23 @@ void readTemperature (struct sensorData *environment)
 }
 
 //=======================================================
+//  readSolarADC: read analog volatage divider value
+//=======================================================
+void readSolarADC (struct diagnostics *hardware)
+{
+  hardware->solarADC = analogRead(VSOLAR_PIN);
+  MonPrintf("Solar ADC :%i\n", hardware->solarADC);
+}
+
+//=======================================================
 //  readBattery: read analog volatage divider value
 //=======================================================
-void readBattery (struct diagnostics *hardware)
+void readBatteryADC (struct diagnostics *hardware)
 //TODO: Rethink the low voltage warning indicator as the calibration is being moved to the LoRa receiver
 {
-  hardware->batteryADC = analogRead(VOLT_PIN);
+  hardware->batteryADC = analogRead(VBAT_PIN);
   hardware->batteryVoltage = hardware->batteryADC * batteryCalFactor;
-  MonPrintf("Battery digital ADC :%i voltage: %6.2f\n", hardware->batteryADC, hardware->batteryVoltage);
+  MonPrintf("Battery ADC :%i voltage: %6.2f\n", hardware->batteryADC, hardware->batteryVoltage);
   //check for low battery situation
   if (hardware->batteryVoltage < batteryLowVoltage)
   {
@@ -77,7 +103,7 @@ void checkBatteryVoltage (void)
 {
   int adc;
   float voltage;
-  adc = analogRead(VOLT_PIN);
+  adc = analogRead(VBAT_PIN);
   voltage = adc * batteryCalFactor;
   //check for low battery situation
   if (voltage < batteryLowVoltage)
@@ -136,7 +162,6 @@ void readBME(struct sensorData *environment)
   if (status.bme)
   {
     bme.read(environment->barometricPressure, case_temperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
-    environment->barometricPressure += ALTITUDE_OFFSET_METRIC;
   }
   else
   {
@@ -171,20 +196,9 @@ void readESPCoreTemp(struct diagnostics *hardware)
   coreF = temprature_sens_read();
   coreC = (coreF - 32) * 5 / 9;
   hardware->coreC = coreC;
-}
+  MonPrintf("F %i\n", coreF);
+  MonPrintf("C %i\n", coreC);
 
-//===========================================
-// sensorEnable: Initialize i2c and 1w sensors
-//===========================================
-void sensorEnable(void)
-{
-  status.temperature = 1;
-  //Wire.setClock(100000);
-  status.bme = bme.begin();
-  status.uv = uv.begin();
-  status.lightMeter = lightMeter.begin();
-
-  temperatureSensor.begin();                //returns void - cannot directly check
 }
 
 //===========================================
