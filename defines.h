@@ -11,7 +11,10 @@
 #define SEC 1E6          //Multiplier for uS based math
 #define WDT_TIMEOUT 120   //watchdog timer
 
-#define BAND 915E6
+//===========================================
+//LoRa band
+//===========================================
+#define BAND 915E6  //you can set band here directly,e.g. 868E6,915E6
 
 #define SerialMonitor
 
