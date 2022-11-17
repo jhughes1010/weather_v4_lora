@@ -14,11 +14,15 @@
                   Better positioning of LoRa power up (after sensor data is acquired)
                   Corrected error in 60min rainfall routines (only using 5 slots, not 6)
                     ***Still not perfect on 60 minute cutoff
-                  
+
+   1.0.2 11-11-22 More sensors online
+                  Added chargeStatus to hardware structure
+                  Removed VBAT (will be calculated in receiver)
+
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.0.1 beta"
+#define VERSION "1.0.2 beta"
 
 #ifdef heltec
 #include "heltec.h"
@@ -75,11 +79,11 @@ struct sensorData {
 //===========================================
 struct diagnostics {
   float BMEtemperature;
-  float batteryVoltage;
   int batteryADC;
   int solarADC;
   int coreC;
   int bootCount;
+  bool chargeStatusB;
 };
 
 //===========================================
@@ -169,6 +173,7 @@ void setup() {
   //set hardware pins
   pinMode(WIND_SPD_PIN, INPUT);
   pinMode(RAIN_PIN, INPUT);
+  pinMode(CHG_STAT, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SENSOR_PWR, OUTPUT);
   pinMode(LORA_PWR, OUTPUT);

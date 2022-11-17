@@ -45,6 +45,7 @@ void readSystemSensors(struct diagnostics *hardware)
   readBatteryADC(hardware);
   readSolarADC(hardware);
   readESPCoreTemp(hardware);
+  readChargeStatus(hardware);
 }
 //=======================================================
 //  readTemperature: Read 1W DS1820B
@@ -83,38 +84,9 @@ void readBatteryADC (struct diagnostics *hardware)
 //TODO: Rethink the low voltage warning indicator as the calibration is being moved to the LoRa receiver
 {
   hardware->batteryADC = analogRead(VBAT_PIN);
-  hardware->batteryVoltage = hardware->batteryADC * batteryCalFactor;
-  MonPrintf("Battery ADC :%i voltage: %6.2f\n", hardware->batteryADC, hardware->batteryVoltage);
-  //check for low battery situation
-  if (hardware->batteryVoltage < batteryLowVoltage)
-  {
-    lowBattery = true;
-  }
-  else
-  {
-    lowBattery = false;
-  }
+  MonPrintf("Battery ADC :%i\n", hardware->batteryADC);
 }
 
-//=======================================================
-//  checkBatteryVoltage: set/reset low voltage flag only
-//=======================================================
-void checkBatteryVoltage (void)
-{
-  int adc;
-  float voltage;
-  adc = analogRead(VBAT_PIN);
-  voltage = adc * batteryCalFactor;
-  //check for low battery situation
-  if (voltage < batteryLowVoltage)
-  {
-    lowBattery = true;
-  }
-  else
-  {
-    lowBattery = false;
-  }
-}
 //=======================================================
 //  readLux: LUX sensor read
 //=======================================================
@@ -199,6 +171,12 @@ void readESPCoreTemp(struct diagnostics *hardware)
   MonPrintf("F %i\n", coreF);
   MonPrintf("C %i\n", coreC);
 
+}
+
+void readChargeStatus(struct diagnostics *hardware)
+{
+  hardware->chargeStatusB = digitalRead(CHG_STAT);
+  MonPrintf("Charger Status: %i\n", hardware->chargeStatusB);
 }
 
 //===========================================
