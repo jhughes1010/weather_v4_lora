@@ -17,6 +17,7 @@
 #define LED_BUILTIN   2  //Diagnostics using built-in LED, may be set to 12 for newer boards that do not use devkit sockets
 #define LORA_PWR     16
 #define SENSOR_PWR   26
+#define CHG_STAT     34
 
 
 #define SEC 1E6          //Multiplier for uS based math
@@ -43,10 +44,3 @@ const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (150s) for my normal op
 //===========================================
 //I see 2 switch pulls to GND per revolation. Not sure what others see
 #define WIND_TICKS_PER_REVOLUTION 2
-
-//===========================================
-//Battery calibration
-//===========================================
-//batteryCalFactor = measured battery voltage/ADC reading
-#define batteryCalFactor .00270
-#define batteryLowVoltage 3.3
