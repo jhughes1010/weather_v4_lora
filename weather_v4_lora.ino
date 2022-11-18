@@ -293,19 +293,6 @@ void printTitle(void) {
   char buffer[32];
   Serial.printf("\n\nWeather station v4\n");
   Serial.printf("Version %s\n\n", VERSION);
-
-#ifdef heltec
-  Heltec.display->init();
-  Heltec.display->flipScreenVertically();
-  Heltec.display->setFont(ArialMT_Plain_10);
-  Heltec.display->clear();
-  sprintf(buffer, "Weather v4 LoRa: %s", VERSION);
-  Heltec.display->drawString(0, 0, buffer);
-  sprintf(buffer, "Boot: %i", bootCount);
-  Heltec.display->drawString(0, 16, buffer);
-  Heltec.display->display();
-  delay(3000);
-#endif
 }
 
 //===========================================

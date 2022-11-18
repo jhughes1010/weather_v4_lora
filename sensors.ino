@@ -13,7 +13,11 @@ extern "C"
 void sensorEnable(void)
 {
   status.temperature = 1;
+#ifdef heltec
+  Wire.begin(4, 15);
+#else
   Wire.begin();
+#endif
   status.bme = bme.begin();
   status.uv = uv.begin();
   status.lightMeter = lightMeter.begin();
