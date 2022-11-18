@@ -19,10 +19,12 @@
                   Added chargeStatus to hardware structure
                   Removed VBAT (will be calculated in receiver)
 
+   1.0.3 11-18-22 #heltec now works again for heltec dev boards
+
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.0.2 beta"
+#define VERSION "1.0.3 beta"
 
 #ifdef heltec
 #include "heltec.h"
