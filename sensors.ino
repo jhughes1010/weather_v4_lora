@@ -166,17 +166,23 @@ void readUV(struct sensorData *environment)
   MonPrintf("IR: %i\n", uv.readIR());
 }
 
+//===========================================
+// readESPCoreTemp:
+//===========================================
 void readESPCoreTemp(struct diagnostics *hardware)
 {
+  //TODO: Validate this, I see the same number all the time
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
   coreC = (coreF - 32) * 5 / 9;
   hardware->coreC = coreC;
   MonPrintf("F %i\n", coreF);
   MonPrintf("C %i\n", coreC);
-
 }
 
+//===========================================
+// readChargeStatus: charge status is active low
+//===========================================
 void readChargeStatus(struct diagnostics *hardware)
 {
   hardware->chargeStatusB = digitalRead(CHG_STAT);
