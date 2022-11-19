@@ -45,7 +45,15 @@ void readWindSpeed(struct sensorData *environment) {
 //=======================================================
 //  readWindDirection: Read ADC to find wind direction
 //=======================================================
-//This function is in testing mode now
+void readWindDirectionADC(struct sensorData *environment) {
+  environment->windDirectionADC = analogRead(WIND_DIR_PIN);
+  MonPrintf("WindDirADC: %i\n", environment->windDirectionADC);
+}
+
+//=======================================================
+//  readWindDirection: Read ADC to find wind direction
+//=======================================================
+/*
 void readWindDirection(struct sensorData *environment) {
   int windPosition;
   //Initial direction
@@ -69,7 +77,7 @@ void readWindDirection(struct sensorData *environment) {
   windDirection.toCharArray(buffer, 5);
   //TODO: sending ADC value only - environment->windDirection = atof(buffer);
   //strcpy(environment->windCardinalDirection, windCardinalDirection.c_str());
-}
+}*/
 
 //=======================================================
 //  windTick: ISR to capture wind speed relay closure

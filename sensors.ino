@@ -33,7 +33,7 @@ void readSensors(struct sensorData *environment)
   copyRainTicks24h(environment);
   copyRainTicks60m(environment);
   readWindSpeed(environment);
-  readWindDirection(environment);
+  readWindDirectionADC(environment);
   readTemperature(environment);
   readLux(environment);
   readUV(environment);
