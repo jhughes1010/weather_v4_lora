@@ -16,10 +16,9 @@ void readWindSpeed(struct sensorData *environment) {
   int samples = 0;
 
   //intentionally ignore the zeroth element
-  //look at up to 3 (or 6) revolutions to get wind speed
-  //Again, I see 2 ticks on anemometer
+  //look at up to 5 ticks to get wind speed
   if (count) {
-    MonPrintf("Count: %i\n",count);
+    MonPrintf("Count: %i\n", count);
     for (position = 1; position < 7; position++) {
       if (tickTime[position]) {
         msTotal += tickTime[position];
@@ -31,7 +30,7 @@ void readWindSpeed(struct sensorData *environment) {
   }
   //Average samples
   if (msTotal > 0 && samples > 0) {
-    windSpeed = 1.49 * 1000 / (msTotal / samples);
+    windSpeed = 2.4 * 1000 / (msTotal / samples);
   } else {
     MonPrintf("No Wind data\n");
     windSpeed = 0;
@@ -39,13 +38,7 @@ void readWindSpeed(struct sensorData *environment) {
   //I see 2 ticks per revolution
   windSpeed = windSpeed / WIND_TICKS_PER_REVOLUTION;
 
-#ifdef METRIC
-  windSpeed = windSpeed * 1.60934;
-#endif
   MonPrintf("WindSpeed: %f\n", windSpeed);
-  
-  //round to nearest 10th
-  windSpeed = int((windSpeed + .05) * 10) / 10;
   environment->windSpeed = windSpeed;
 }
 

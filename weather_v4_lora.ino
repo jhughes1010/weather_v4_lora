@@ -259,6 +259,8 @@ void setup() {
         PrintEnvironment(environment);
       } else {
         title("Sending hardware data");
+        sensorEnable();
+        sensorStatusToConsole();
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
         hardware.bootCount = bootCount;
