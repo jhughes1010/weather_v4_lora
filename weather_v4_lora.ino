@@ -20,6 +20,8 @@
                   Removed VBAT (will be calculated in receiver)
 
    1.0.3 11-18-22 #heltec now works again for heltec dev boards
+                  WindDirADC value now being sent
+                  Metric wind speed being sent, was sending imperial value
 
 */
 
@@ -270,6 +272,7 @@ void setup() {
       }
       //TODO: New LoRa power up
       LoRaPowerUp();
+      BlinkLED(2);
       //TODO: Send Environment or hardware
       loraSend(LoRaPacket, LoRaPacketSize);
       //Power down peripherals
