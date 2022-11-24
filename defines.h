@@ -34,6 +34,8 @@
 const int UpdateIntervalSeconds = 3 * 60;  //Sleep timer (150s) for my normal operation
 //const int UpdateIntervalSeconds = 1 * 60; //Sleep timer (60s) testing
 
+#define SEND_FREQUENCY_LORA 5
+
 //===========================================
 //BH1750 Enable
 //===========================================

@@ -40,6 +40,8 @@ void readWindSpeed(struct sensorData *environment) {
 
   MonPrintf("WindSpeed: %f\n", windSpeed);
   environment->windSpeed = windSpeed;
+  environment->windSpeedMax = maxWindSpeed;
+  maxWindSpeed = 0;
 }
 
 //=======================================================
@@ -51,33 +53,12 @@ void readWindDirectionADC(struct sensorData *environment) {
 }
 
 //=======================================================
-//  readWindDirection: Read ADC to find wind direction
+//  checkMaxWind: Update max windspeed, if needed
 //=======================================================
-/*
-void readWindDirection(struct sensorData *environment) {
-  int windPosition;
-  //Initial direction
-  //Prove it is not this direction
-  String windDirection = "0";
-  String windCardinalDirection = "N";
-  int analogCompare[15] = { 150, 300, 450, 600, 830, 1100, 1500, 1700, 2250, 2350, 2700, 3000, 3200, 3400, 3900 };
-  String windDirText[15] = { "157.5", "180", "247.5", "202.5", "225", "270", "292.5", "112.5", "135", "337.5", "315", "67.5", "90", "22.5", "45" };
-  String windDirCardinalText[15] = { "SSE", "S", "WSW", "SSW", "SW", "W", "WNW", "ESE", "SE", "NNW", "NW", "ENE", "E", "NNE", "NE" };
-  char buffer[10];
-  int vin = analogRead(WIND_DIR_PIN);
-
-  for (windPosition = 0; windPosition < 15; windPosition++) {
-    if (vin < analogCompare[windPosition]) {
-      windDirection = windDirText[windPosition];
-      windCardinalDirection = windDirCardinalText[windPosition];
-      break;
-    }
-  }
-  MonPrintf("Analog value: %i Wind direction: %s  \n", vin, windDirection);
-  windDirection.toCharArray(buffer, 5);
-  //TODO: sending ADC value only - environment->windDirection = atof(buffer);
-  //strcpy(environment->windCardinalDirection, windCardinalDirection.c_str());
-}*/
+void checkMaxWind(void) {
+  //if current windspeed > MaxWindspeed
+  //MaxWindspeed = current
+}
 
 //=======================================================
 //  windTick: ISR to capture wind speed relay closure
