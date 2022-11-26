@@ -24,7 +24,7 @@
                   Metric wind speed being sent, was sending imperial value
 
    1.1.0 11-23-22 Wind gust measurement added. Wakes more frequently without sending data.
-                  New data struct member added on sensors, now 28 bytes
+                  New data struct member added on sensors, now 40 bytes
 
 */
 
@@ -160,6 +160,7 @@ void setup() {
 
   Serial.begin(115200);
   printTitle();
+  title("Boot count: %i", bootCount);
 
   //Enable WDT for any lock-up events
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -227,7 +228,7 @@ void setup() {
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
       powerUpSensors();
-      bootCount++;
+      
 
 
       //Rainfall interrupt pin set up
@@ -291,7 +292,9 @@ void setup() {
         LoRa.end();
         powerDownAll();
       }
+      bootCount++;
       break;
+      
   }
 
   //preparing for sleep
