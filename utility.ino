@@ -7,16 +7,16 @@ void LoRaPowerUp(void)
   delay(500);
 
 #ifdef heltec
-  Wire.begin(4, 15);
-  Heltec.begin(true /*DisplayEnable Enable*/, true /*Heltec.Heltec.Heltec.LoRa Disable*/, true /*Serial Enable*/, true /*PABOOST Enable*/, BAND /*long BAND*/);
+  LoRa.setPins(18, 14, 26);
 #else
   LoRa.setSPIFrequency(1000000);
   LoRa.setPins(15, 17, 13);
+#endif
   if (!LoRa.begin(BAND)) {
     Serial.println("Starting LoRa failed!");
     while (1);
   }
-#endif
+
   title("LoRa radio online");
 
   //End LoRa turn on

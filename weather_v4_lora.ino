@@ -19,10 +19,17 @@
                   Added chargeStatus to hardware structure
                   Removed VBAT (will be calculated in receiver)
 
+   1.0.3 11-18-22 #heltec now works again for heltec dev boards
+                  WindDirADC value now being sent
+                  Metric wind speed being sent, was sending imperial value
+
+   1.1.0 11-23-22 Wind gust measurement added. Wakes more frequently without sending data.
+                  New data struct member added on sensors, now 40 bytes
+
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.0.2 beta"
+#define VERSION "1.1.0"
 
 #ifdef heltec
 #include "heltec.h"
@@ -68,6 +75,7 @@ struct sensorData {
   int rainTicks60m;
   float temperatureC;
   float windSpeed;
+  float windSpeedMax;
   float barometricPressure;
   float humidity;
   float UVIndex;
@@ -99,8 +107,7 @@ struct sensorStatus {
 //===========================================
 // rainfallData structure
 //===========================================
-struct rainfallData
-{
+struct rainfallData {
   unsigned int intervalRainfall;
   unsigned int hourlyRainfall[24];
   unsigned int current60MinRainfall[5];
@@ -114,11 +121,10 @@ struct rainfallData
 // RTC Memory storage
 //===========================================
 RTC_DATA_ATTR volatile int rainTicks = 0;
-//RTC_DATA_ATTR int lastHour = 0;
-//RTC_DATA_ATTR time_t nextUpdate;
 RTC_DATA_ATTR struct rainfallData rainfall;
 RTC_DATA_ATTR int bootCount = 0;
-//RTC_DATA_ATTR unsigned int elapsedTime = 0;
+RTC_DATA_ATTR float maxWindSpeed = 0;
+
 
 //===========================================
 // ISR Prototypes
@@ -154,6 +160,7 @@ void setup() {
 
   Serial.begin(115200);
   printTitle();
+  title("Boot count: %i", bootCount);
 
   //Enable WDT for any lock-up events
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -201,8 +208,10 @@ void setup() {
     //Power on reset
     case 0:
       // set current day/time
+      //reality - I set an arbitrary TOD as actual time is not critical, just relative time for current hour and past 24h rainfall
 
-      tv.tv_sec =   1667301066;  // enter UTC UNIX time (get it from https://www.unixtimestamp.com )
+
+      tv.tv_sec = 1667301066;  // enter UTC UNIX time (get it from https://www.unixtimestamp.com )
       settimeofday(&tv, NULL);
       //default to wake 5 sec after POR
       nextUpdate = 5;
@@ -219,20 +228,22 @@ void setup() {
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
       powerUpSensors();
-      bootCount++;
+      
+
 
       //Rainfall interrupt pin set up
       //delay(100);  //possible settling time on pin to charge
       attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
       attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
-
+      //give 5 seconds to aquire wind speed data
+      delay(5000);
       //TODO: set TOD on interval
+      checkMaxWind();
 
 
-      if (bootCount % 2 == 1) {
+      if (bootCount % (2 * SEND_FREQUENCY_LORA) == 0) {
         title("Sending sensor data");
-        //give 5 seconds to aquire wind speed data
-        delay(5000);
+
 
         //read sensors
         sensorEnable();
@@ -240,9 +251,8 @@ void setup() {
 
         //update rainfall
         addTipsToMinute(rainTicks);
-        printMinuteArray();
         clearRainfallMinute(timeinfo.tm_min + 10);
-        printMinuteArray();
+        //printMinuteArray();
 
         addTipsToHour(rainTicks);
         clearRainfallHour(timeinfo.tm_hour + 1);
@@ -255,23 +265,36 @@ void setup() {
         LoRaPacket = &environment;
         LoRaPacketSize = sizeof(environment);
         PrintEnvironment(environment);
-      } else {
+        //TODO: New LoRa power up
+        LoRaPowerUp();
+        BlinkLED(2);
+        //TODO: Send Environment or hardware
+        loraSend(LoRaPacket, LoRaPacketSize);
+        //Power down peripherals
+        LoRa.end();
+        powerDownAll();
+      } else if (bootCount % (2 * SEND_FREQUENCY_LORA) == SEND_FREQUENCY_LORA) {
         title("Sending hardware data");
+        sensorEnable();
+        sensorStatusToConsole();
         //system (battery levels, ESP32 core temp, case temp, etc) send
         readSystemSensors(&hardware);
         hardware.bootCount = bootCount;
 
         LoRaPacket = &hardware;
         LoRaPacketSize = sizeof(hardware);
+        //TODO: New LoRa power up
+        LoRaPowerUp();
+        BlinkLED(2);
+        //TODO: Send Environment or hardware
+        loraSend(LoRaPacket, LoRaPacketSize);
+        //Power down peripherals
+        LoRa.end();
+        powerDownAll();
       }
-      //TODO: New LoRa power up
-      LoRaPowerUp();
-      //TODO: Send Environment or hardware
-      loraSend(LoRaPacket, LoRaPacketSize);
-      //Power down peripherals
-      LoRa.end();
-      powerDownAll();
+      bootCount++;
       break;
+      
   }
 
   //preparing for sleep
@@ -293,19 +316,6 @@ void printTitle(void) {
   char buffer[32];
   Serial.printf("\n\nWeather station v4\n");
   Serial.printf("Version %s\n\n", VERSION);
-
-#ifdef heltec
-  Heltec.display->init();
-  Heltec.display->flipScreenVertically();
-  Heltec.display->setFont(ArialMT_Plain_10);
-  Heltec.display->clear();
-  sprintf(buffer, "Weather v4 LoRa: %s", VERSION);
-  Heltec.display->drawString(0, 0, buffer);
-  sprintf(buffer, "Boot: %i", bootCount);
-  Heltec.display->drawString(0, 16, buffer);
-  Heltec.display->display();
-  delay(3000);
-#endif
 }
 
 //===========================================
@@ -325,8 +335,7 @@ void sleepyTime(long nextUpdate) {
 
   //subtract elapsed time to try to maintain interval
   nextUpdate -= elapsedTime;
-  if (nextUpdate < 3)
-  {
+  if (nextUpdate < 3) {
     nextUpdate = 3;
   }
   Serial.printf("Elapsed time: %i seconds\n", elapsedTime);
@@ -417,12 +426,12 @@ void PrintEnvironment(struct sensorData environment) {
 //===========================================
 // Title: banner to terminal
 //===========================================
-void title(const char* format, ... )
-{ char buffer[200];
+void title(const char *format, ...) {
+  char buffer[200];
   va_list args;
   va_start(args, format);
   vsprintf(buffer, format, args);
-  va_end( args );
+  va_end(args);
 #ifdef SerialMonitor
   Serial.printf("==============================================\n");
   Serial.printf("%s\n", buffer);

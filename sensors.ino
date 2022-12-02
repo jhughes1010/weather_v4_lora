@@ -13,7 +13,11 @@ extern "C"
 void sensorEnable(void)
 {
   status.temperature = 1;
+#ifdef heltec
+  Wire.begin(4, 15);
+#else
   Wire.begin();
+#endif
   status.bme = bme.begin();
   status.uv = uv.begin();
   status.lightMeter = lightMeter.begin();
@@ -29,7 +33,7 @@ void readSensors(struct sensorData *environment)
   copyRainTicks24h(environment);
   copyRainTicks60m(environment);
   readWindSpeed(environment);
-  readWindDirection(environment);
+  readWindDirectionADC(environment);
   readTemperature(environment);
   readLux(environment);
   readUV(environment);
@@ -162,17 +166,23 @@ void readUV(struct sensorData *environment)
   MonPrintf("IR: %i\n", uv.readIR());
 }
 
+//===========================================
+// readESPCoreTemp:
+//===========================================
 void readESPCoreTemp(struct diagnostics *hardware)
 {
+  //TODO: Validate this, I see the same number all the time
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
   coreC = (coreF - 32) * 5 / 9;
   hardware->coreC = coreC;
   MonPrintf("F %i\n", coreF);
   MonPrintf("C %i\n", coreC);
-
 }
 
+//===========================================
+// readChargeStatus: charge status is active low
+//===========================================
 void readChargeStatus(struct diagnostics *hardware)
 {
   hardware->chargeStatusB = digitalRead(CHG_STAT);
