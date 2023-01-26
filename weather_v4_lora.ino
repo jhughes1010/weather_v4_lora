@@ -26,6 +26,8 @@
    1.1.0 11-23-22 Wind gust measurement added. Wakes more frequently without sending data.
                   New data struct member added on sensors, now 40 bytes
 
+   1.1.1 01-26-23 Turned on CRC at the LoRa hardware level to help increase packet integrity.                
+
 */
 
 //Hardware build target: ESP32
