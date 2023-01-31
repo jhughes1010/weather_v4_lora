@@ -72,6 +72,7 @@
 // Weather-environment structure
 //===========================================
 struct sensorData {
+  int deviceID = DEVID;
   int windDirectionADC;
   int rainTicks24h;
   int rainTicks60m;
@@ -88,6 +89,7 @@ struct sensorData {
 // Station hardware structure
 //===========================================
 struct diagnostics {
+  int deviceID = DEVID;
   float BMEtemperature;
   int batteryADC;
   int solarADC;
@@ -230,7 +232,7 @@ void setup() {
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
       powerUpSensors();
-      
+
 
 
       //Rainfall interrupt pin set up
@@ -296,7 +298,6 @@ void setup() {
       }
       bootCount++;
       break;
-      
   }
 
   //preparing for sleep
