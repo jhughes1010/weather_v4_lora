@@ -26,10 +26,13 @@
    1.1.0 11-23-22 Wind gust measurement added. Wakes more frequently without sending data.
                   New data struct member added on sensors, now 40 bytes
 
+   1.1.1 02-05-23 Turned on CRC at the LoRa hardware level to help increase packet integrity. 
+                  Added ID int value to the structure to better isolate the data. Station ID and RX ID MUST MATCH. I played around with syncWord()                                
+                  , but not getting desired results.
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 
 #ifdef heltec
 #include "heltec.h"
@@ -45,7 +48,6 @@
 #include <esp_system.h>
 #include <driver/rtc_io.h>
 #include <sys/time.h>
-
 #include <time.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
@@ -53,23 +55,19 @@
 #include <BH1750.h>
 #include <BME280I2C.h>
 #include <Adafruit_SI1145.h>
-//#include <stdarg.h>
-#include <soc/soc.h>
-#include <soc/rtc_cntl_reg.h>
-#include <esp_task_wdt.h>
-#include <esp_system.h>
-#include <driver/rtc_io.h>
+
 //OLED diagnostics board
 //#include <Adafruit_GFX.h>
 //#include <Adafruit_SSD1306.h>
 
-#define OLED_RESET 4
+//#define OLED_RESET 4
 
 
 //===========================================
 // Weather-environment structure
 //===========================================
 struct sensorData {
+  int deviceID;
   int windDirectionADC;
   int rainTicks24h;
   int rainTicks60m;
@@ -86,6 +84,7 @@ struct sensorData {
 // Station hardware structure
 //===========================================
 struct diagnostics {
+  int deviceID;
   float BMEtemperature;
   int batteryADC;
   int solarADC;
@@ -152,6 +151,9 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason;
   struct sensorData environment = {};
   struct diagnostics hardware = {};
+  environment.deviceID = DEVID;
+  hardware.deviceID = DEVID;
+
   struct timeval tv;
 
   void *LoRaPacket;
@@ -161,6 +163,7 @@ void setup() {
   Serial.begin(115200);
   printTitle();
   title("Boot count: %i", bootCount);
+  Serial.println(environment.deviceID, HEX);
 
   //Enable WDT for any lock-up events
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -228,7 +231,7 @@ void setup() {
     case ESP_SLEEP_WAKEUP_TIMER:
       title("Wakeup caused by timer");
       powerUpSensors();
-      
+
 
 
       //Rainfall interrupt pin set up
@@ -283,6 +286,7 @@ void setup() {
 
         LoRaPacket = &hardware;
         LoRaPacketSize = sizeof(hardware);
+        Serial.printf("DEVID: %x\n", hardware.deviceID);
         //TODO: New LoRa power up
         LoRaPowerUp();
         BlinkLED(2);
@@ -294,7 +298,6 @@ void setup() {
       }
       bootCount++;
       break;
-      
   }
 
   //preparing for sleep
@@ -421,6 +424,7 @@ void PrintEnvironment(struct sensorData environment) {
   Serial.printf("Humidity: %f\n", environment.humidity);
   Serial.printf("UV Index: %f\n", environment.UVIndex);
   Serial.printf("Lux: %f\n", environment.lux);
+  Serial.printf("DEVID: %x\n", environment.deviceID);
 }
 
 //===========================================

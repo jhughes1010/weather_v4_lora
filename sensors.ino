@@ -1,8 +1,7 @@
 OneWire oneWire(TEMP_PIN);
 DallasTemperature temperatureSensor(&oneWire);
 
-extern "C"
-{
+extern "C" {
   uint8_t temprature_sens_read();
 }
 
@@ -10,8 +9,7 @@ extern "C"
 //===========================================
 // sensorEnable: Initialize i2c and 1w sensors
 //===========================================
-void sensorEnable(void)
-{
+void sensorEnable(void) {
   status.temperature = 1;
 #ifdef heltec
   Wire.begin(4, 15);
@@ -22,14 +20,13 @@ void sensorEnable(void)
   status.uv = uv.begin();
   status.lightMeter = lightMeter.begin();
 
-  temperatureSensor.begin();                //returns void - cannot directly check
+  temperatureSensor.begin();  //returns void - cannot directly check
 }
 
 //=======================================================
 //  readSensors: Read all sensors and battery voltage
 //=======================================================
-void readSensors(struct sensorData *environment)
-{
+void readSensors(struct sensorData *environment) {
   copyRainTicks24h(environment);
   copyRainTicks60m(environment);
   readWindSpeed(environment);
@@ -43,8 +40,7 @@ void readSensors(struct sensorData *environment)
 //=======================================================
 //  readSystemSensors: Hardware health and diagnostics
 //=======================================================
-void readSystemSensors(struct diagnostics *hardware)
-{
+void readSystemSensors(struct diagnostics *hardware) {
   readBME(hardware);
   readBatteryADC(hardware);
   readSolarADC(hardware);
@@ -54,19 +50,15 @@ void readSystemSensors(struct diagnostics *hardware)
 //=======================================================
 //  readTemperature: Read 1W DS1820B
 //=======================================================
-void readTemperature (struct sensorData *environment)
-{
+void readTemperature(struct sensorData *environment) {
   MonPrintf("Requesting temperatures...\n");
   temperatureSensor.requestTemperatures();
   environment->temperatureC = temperatureSensor.getTempCByIndex(0);
 
   // Check if reading was successful
-  if (environment->temperatureC != DEVICE_DISCONNECTED_C)
-  {
+  if (environment->temperatureC != DEVICE_DISCONNECTED_C) {
     MonPrintf("Temperature for the device 1 (index 0) is: %5.1f C\n", environment->temperatureC);
-  }
-  else
-  {
+  } else {
     MonPrintf("Error: Could not read temperature data\n");
     environment->temperatureC = -40;
   }
@@ -75,8 +67,7 @@ void readTemperature (struct sensorData *environment)
 //=======================================================
 //  readSolarADC: read analog volatage divider value
 //=======================================================
-void readSolarADC (struct diagnostics *hardware)
-{
+void readSolarADC(struct diagnostics *hardware) {
   hardware->solarADC = analogRead(VSOLAR_PIN);
   MonPrintf("Solar ADC :%i\n", hardware->solarADC);
 }
@@ -84,7 +75,7 @@ void readSolarADC (struct diagnostics *hardware)
 //=======================================================
 //  readBattery: read analog volatage divider value
 //=======================================================
-void readBatteryADC (struct diagnostics *hardware)
+void readBatteryADC(struct diagnostics *hardware)
 //TODO: Rethink the low voltage warning indicator as the calibration is being moved to the LoRa receiver
 {
   hardware->batteryADC = analogRead(VBAT_PIN);
@@ -94,15 +85,11 @@ void readBatteryADC (struct diagnostics *hardware)
 //=======================================================
 //  readLux: LUX sensor read
 //=======================================================
-void readLux(struct sensorData *environment)
-{
+void readLux(struct sensorData *environment) {
 #ifdef BH1750Enable
-  if (status.lightMeter)
-  {
+  if (status.lightMeter) {
     environment->lux = lightMeter.readLightLevel();
-  }
-  else
-  {
+  } else {
     environment->lux = -1;
   }
 #else
@@ -114,33 +101,24 @@ void readLux(struct sensorData *environment)
 //=======================================================
 //  readBME: BME sensor read
 //=======================================================
-void readBME(struct diagnostics *hardware)
-{
+void readBME(struct diagnostics *hardware) {
   float relHum, pressure;
-  if (status.bme)
-  {
+  if (status.bme) {
     bme.read(pressure, hardware->BMEtemperature, relHum, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
-  }
-  else
-  {
+  } else {
     hardware->BMEtemperature = -100;
   }
   MonPrintf("BME case temperature: %6.2f\n", hardware->BMEtemperature);
-
 }
 
 //=======================================================
 //  readBME: BME sensor read
 //=======================================================
-void readBME(struct sensorData *environment)
-{
+void readBME(struct sensorData *environment) {
   float case_temperature;
-  if (status.bme)
-  {
+  if (status.bme) {
     bme.read(environment->barometricPressure, case_temperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
-  }
-  else
-  {
+  } else {
     //set to insane values
     environment->barometricPressure = -100;
     environment->humidity = -100;
@@ -151,14 +129,10 @@ void readBME(struct sensorData *environment)
 //=======================================================
 //  readUV: get implied uv sensor value
 //=======================================================
-void readUV(struct sensorData *environment)
-{
-  if (status.uv)
-  {
-    environment->UVIndex = (float) uv.readUV() / 100;
-  }
-  else
-  {
+void readUV(struct sensorData *environment) {
+  if (status.uv) {
+    environment->UVIndex = (float)uv.readUV() / 100;
+  } else {
     environment->UVIndex = -1;
   }
   MonPrintf("UV Index: %f\n", environment->UVIndex);
@@ -169,8 +143,7 @@ void readUV(struct sensorData *environment)
 //===========================================
 // readESPCoreTemp:
 //===========================================
-void readESPCoreTemp(struct diagnostics *hardware)
-{
+void readESPCoreTemp(struct diagnostics *hardware) {
   //TODO: Validate this, I see the same number all the time
   unsigned int coreF, coreC;
   coreF = temprature_sens_read();
@@ -183,17 +156,16 @@ void readESPCoreTemp(struct diagnostics *hardware)
 //===========================================
 // readChargeStatus: charge status is active low
 //===========================================
-void readChargeStatus(struct diagnostics *hardware)
-{
+void readChargeStatus(struct diagnostics *hardware) {
   hardware->chargeStatusB = digitalRead(CHG_STAT);
   MonPrintf("Charger Status: %i\n", hardware->chargeStatusB);
 }
 
+
 //===========================================
 // sensorStatusToConsole: Output .begin return values
 //===========================================
-void sensorStatusToConsole(void)
-{
+void sensorStatusToConsole(void) {
   MonPrintf("----- Sensor Statuses -----\n");
   MonPrintf("BME status:         %i\n", status.bme);
   MonPrintf("UV status:          %i\n", status.uv);
