@@ -26,12 +26,13 @@
    1.1.0 11-23-22 Wind gust measurement added. Wakes more frequently without sending data.
                   New data struct member added on sensors, now 40 bytes
 
-   1.1.1 01-26-23 Turned on CRC at the LoRa hardware level to help increase packet integrity.                
-
+   1.1.1 02-05-23 Turned on CRC at the LoRa hardware level to help increase packet integrity. 
+                  Added ID int value to the structure to better isolate the data. Station ID and RX ID MUST MATCH. I played around with syncWord()                                
+                  , but not getting desired results.
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 
 #ifdef heltec
 #include "heltec.h"
