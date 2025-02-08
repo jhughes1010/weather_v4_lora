@@ -23,7 +23,7 @@
 #define SEC 1E6          //Multiplier for uS based math
 #define WDT_TIMEOUT 30   //watchdog timer
 
-#define DEVID 0x11223344
+#define DEVID 0x03d73aa4 
 
 #define BAND 915E6
 //#define BAND 433E6

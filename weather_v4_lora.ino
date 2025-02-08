@@ -29,10 +29,12 @@
    1.1.1 02-05-23 Turned on CRC at the LoRa hardware level to help increase packet integrity. 
                   Added ID int value to the structure to better isolate the data. Station ID and RX ID MUST MATCH. I played around with syncWord()                                
                   , but not getting desired results.
+
+  1.2.1 09-29-24  New ESP library demands new WDT data struct, no other changes.
 */
 
 //Hardware build target: ESP32
-#define VERSION "1.1.1"
+#define VERSION "1.2.1"
 
 #ifdef heltec
 #include "heltec.h"
@@ -117,6 +119,15 @@ struct rainfallData {
 };
 
 //===========================================
+// WDT structure
+//===========================================
+esp_task_wdt_config_t twdt_config = {
+  .timeout_ms = WDT_TIMEOUT*1000,
+  .idle_core_mask = 3,  // Bitmask of all cores
+  .trigger_panic = false,
+};
+
+//===========================================
 // RTC Memory storage
 //===========================================
 RTC_DATA_ATTR volatile int rainTicks = 0;
@@ -165,9 +176,10 @@ void setup() {
   title("Boot count: %i", bootCount);
   Serial.println(environment.deviceID, HEX);
 
-  //Enable WDT for any lock-up events
-  esp_task_wdt_init(WDT_TIMEOUT, true);
-  esp_task_wdt_add(NULL);
+   //Enable WDT for any lock-up events
+  esp_task_wdt_deinit(); //wdt is enabled by default, so we need to deinit it first
+  esp_task_wdt_init(&twdt_config); //enable panic so ESP32 restarts
+  esp_task_wdt_add(NULL); //add current thread to WDT watch
 
   //time testing
 
